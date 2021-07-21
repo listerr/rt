@@ -994,15 +994,15 @@ sub ValidateLifecycle {
     # ->{actions} are handled below
     for my $state ( keys %{ $lifecycle->{defaults} || {} } ) {
         my $status = $lifecycle->{defaults}{$state};
-        push @warnings, $current_user->loc( "Nonexistant status [_1] in default states in [_2] lifecycle", lc $status, $name )
+        push @warnings, $current_user->loc( "Nonexistent status [_1] in default states in [_2] lifecycle", lc $status, $name )
             unless $lifecycle->{canonical_case}{ lc $status };
     }
     for my $from ( keys %{ $lifecycle->{transitions} || {} } ) {
-        push @warnings, $current_user->loc( "Nonexistant status [_1] in transitions in [_2] lifecycle", lc $from, $name )
+        push @warnings, $current_user->loc( "Nonexistent status [_1] in transitions in [_2] lifecycle", lc $from, $name )
             unless $from eq '' || $lifecycle->{canonical_case}{ lc $from };
 
         for my $status ( @{ ( $lifecycle->{transitions}{$from} ) || [] } ) {
-            push @warnings, $current_user->loc( "Nonexistant status [_1] in transitions in [_2] lifecycle", lc $status, $name )
+            push @warnings, $current_user->loc( "Nonexistent status [_1] in transitions in [_2] lifecycle", lc $status, $name )
                 unless $lifecycle->{canonical_case}{ lc $status };
         }
     }
@@ -1013,10 +1013,10 @@ sub ValidateLifecycle {
             push @warnings, $current_user->loc( "Invalid right transition [_1] in [_2] lifecycle", $schema, $name );
             next;
         }
-        push @warnings, $current_user->loc( "Nonexistant status [_1] in right transition in [_2] lifecycle", lc $from, $name )
+        push @warnings, $current_user->loc( "Nonexistent status [_1] in right transition in [_2] lifecycle", lc $from, $name )
             unless $from eq '*'
             or $lifecycle->{canonical_case}{ lc $from };
-        push @warnings, $current_user->loc( "Nonexistant status [_1] in right transition in [_2] lifecycle", lc $to, $name )
+        push @warnings, $current_user->loc( "Nonexistent status [_1] in right transition in [_2] lifecycle", lc $to, $name )
             unless $to eq '*' || $lifecycle->{canonical_case}{ lc $to };
 
         push @warnings,
@@ -1045,10 +1045,10 @@ sub ValidateLifecycle {
             push @warnings, $current_user->loc( "Invalid action status change [_1], in [_2] lifecycle", $transition, $name );
             next;
         }
-        push @warnings, $current_user->loc( "Nonexistant status [_1] in action in [_2] lifecycle", lc $from, $name )
+        push @warnings, $current_user->loc( "Nonexistent status [_1] in action in [_2] lifecycle", lc $from, $name )
             unless $from eq '*'
             or $lifecycle->{canonical_case}{ lc $from };
-        push @warnings, $current_user->loc( "Nonexistant status [_1] in action in [_2] lifecycle", lc $to, $name )
+        push @warnings, $current_user->loc( "Nonexistent status [_1] in action in [_2] lifecycle", lc $to, $name )
             unless $to eq '*'
             or $lifecycle->{canonical_case}{ lc $to };
     }
@@ -1079,16 +1079,16 @@ sub ValidateLifecycleMaps {
             push @warnings, $current_user->loc( "Invalid lifecycle mapping [_1]", $mapname );
             next;
         }
-        push @warnings, $current_user->loc( "Nonexistant lifecycle [_1] in [_2] lifecycle map", $from, $mapname )
+        push @warnings, $current_user->loc( "Nonexistent lifecycle [_1] in [_2] lifecycle map", $from, $mapname )
             unless $LIFECYCLES_CACHE{$from};
-        push @warnings, $current_user->loc( "Nonexistant lifecycle [_1] in [_2] lifecycle map", $to, $mapname )
+        push @warnings, $current_user->loc( "Nonexistent lifecycle [_1] in [_2] lifecycle map", $to, $mapname )
             unless $LIFECYCLES_CACHE{$to};
 
         my $map = $LIFECYCLES_CACHE{'__maps__'}{$mapname};
         for my $status ( keys %{$map} ) {
-            push @warnings, $current_user->loc( "Nonexistant status [_1] in [_2] in [_3] lifecycle map", lc $status, $from, $mapname )
+            push @warnings, $current_user->loc( "Nonexistent status [_1] in [_2] in [_3] lifecycle map", lc $status, $from, $mapname )
                 if $LIFECYCLES_CACHE{$from} && !$LIFECYCLES_CACHE{$from}{canonical_case}{ lc $status };
-            push @warnings, $current_user->loc( "Nonexistant status [_1] in [_2] in [_3] lifecycle map", lc $map->{$status}, $to, $mapname )
+            push @warnings, $current_user->loc( "Nonexistent status [_1] in [_2] in [_3] lifecycle map", lc $map->{$status}, $to, $mapname )
                 if $LIFECYCLES_CACHE{$to} && !$LIFECYCLES_CACHE{$to}{canonical_case}{ lc $map->{$status} };
         }
     }
