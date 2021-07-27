@@ -167,6 +167,8 @@ our %FIELD_METADATA = (
     WatcherGroup     => [ 'MEMBERSHIPFIELD', ], #loc_left_pair
     HasAttribute     => [ 'HASATTRIBUTE', 1 ],
     HasNoAttribute     => [ 'HASATTRIBUTE', 0 ],
+    HasUnreadMessages   => [ 'HASUNREADMESSAGES', 1 ],
+    HasNoUnreadMessages => [ 'HASUNREADMESSAGES', 0 ],
 );
 
 # Lower Case version of FIELDS, for case insensitivity
@@ -197,6 +199,7 @@ our %dispatch = (
     CUSTOMFIELD     => \&_CustomFieldLimit,
     HASATTRIBUTE    => \&_HasAttributeLimit,
     LIFECYCLE       => \&_LifecycleLimit,
+    HASUNREADMESSAGES => \&_HasUnreadMessagesLimit,
 );
 
 # Default EntryAggregator per type
@@ -1430,6 +1433,181 @@ sub _HasAttributeLimit {
         VALUE      => 'NULL',
         QUOTEVALUE => 0,
     );
+}
+
+sub _HasUnreadMessagesLimit {
+    my ( $self, $field, $op, $value, %rest ) = @_;
+
+    my $alias = $self->Join(
+        TYPE   => 'LEFT',
+        ALIAS1 => 'main',
+        FIELD1 => 'id',
+        TABLE2 => 'Attributes',
+        FIELD2 => 'ObjectId',
+    );
+    $self->Limit(
+        LEFTJOIN        => $alias,
+        FIELD           => 'ObjectType',
+        VALUE           => 'RT::Ticket',
+        ENTRYAGGREGATOR => 'AND',
+    );
+
+    my $db_type = RT->Config->Get('DatabaseType');
+    my $quote_value;
+    my $attr_name;
+    if ( $value =~ /\D/ ) {
+        if ( $value =~ /^(?:main\.)?Owner$/i ) {
+            if ( $db_type =~ /Oracle|SQLite/ ) {
+                $attr_name = "'User-' || main.Owner || '-SeenUpTo'";
+            }
+            else {
+                $attr_name = "CONCAT('User-', main.Owner, '-SeenUpTo')";
+            }
+            $value       = 'main.Owner';
+            $quote_value = 0;
+        }
+        else {
+            my $user = RT::User->new( $self->CurrentUser );
+            $user->Load($value);
+            $value = $user->Id || 0;
+        }
+    }
+
+    if ( $value =~ /^\d+$/ ) {
+        $attr_name   = "User-$value-SeenUpTo";
+        $quote_value = 1;
+    }
+
+    $self->Limit(
+        LEFTJOIN        => $alias,
+        FIELD           => 'Name',
+        OPERATOR        => $op,
+        VALUE           => $attr_name,
+        QUOTEVALUE      => $quote_value,
+        ENTRYAGGREGATOR => 'AND',
+    );
+
+    my @txn_aliases;
+    # We need 2 LEFT JOIN txn aliases for HasNoUnreadMessages
+    for ( 1 .. ( $FIELD_METADATA{$field}->[1] ? 1 : 2 ) ) {
+        my $txn_alias = $self->Join(
+            $FIELD_METADATA{$field}->[1] ? () : ( TYPE => 'LEFT' ),
+            ALIAS1 => 'main',
+            FIELD1 => 'id',
+            TABLE2 => 'Transactions',
+            FIELD2 => 'ObjectId',
+        );
+        $self->Limit(
+            LEFTJOIN        => $txn_alias,
+            FIELD           => 'ObjectType',
+            VALUE           => 'RT::Ticket',
+            ENTRYAGGREGATOR => 'AND',
+        );
+        $self->Limit(
+            LEFTJOIN        => $txn_alias,
+            FIELD           => 'Type',
+            VALUE           => [ 'Create', 'Correspond', 'Comment' ],
+            OPERATOR        => 'IN',
+            ENTRYAGGREGATOR => 'AND',
+        );
+        $self->Limit(
+            LEFTJOIN   => $txn_alias,
+            FIELD      => 'Creator',
+            VALUE      => $value,
+            OPERATOR   => '!=',
+            QUOTEVALUE => $quote_value,
+        );
+        push @txn_aliases, $txn_alias;
+    }
+
+    my $function;
+    if ( $db_type eq 'Pg' ) {
+        $function = "CAST($txn_aliases[0].Created AS TEXT)";
+    }
+    elsif ( $db_type eq 'Oracle' ) {
+        $function = "TO_CHAR($txn_aliases[0].Created, 'YYYY-MM-DD HH24:MI:SS')";
+    }
+
+    if ( $FIELD_METADATA{$field}->[1] ) {
+        $self->_OpenParen();
+
+        # Has no SeenUpTo attribute and has contents created by other people ever
+        $self->Limit(
+            %rest,
+            ALIAS           => $alias,
+            FIELD           => 'id',
+            OPERATOR        => 'IS',
+            VALUE           => 'NULL',
+            QUOTEVALUE      => 0,
+        );
+
+        # Has SeenUpTo attribute and contents created by other people after that
+        $self->Limit(
+            ALIAS           => $txn_aliases[0],
+            FIELD           => 'Created',
+            OPERATOR        => '>',
+            VALUE           => $db_type eq 'Oracle' ? "DBMS_LOB.substr($alias.Content, 19)" : "$alias.Content",
+            QUOTEVALUE      => 0,
+            ENTRYAGGREGATOR => 'OR',
+            $function ? ( FUNCTION => $function ) : (),
+        );
+        $self->_CloseParen();
+    }
+    else {
+        $self->_OpenParen();
+
+        $self->_OpenParen();
+
+        # Has SeenUpTo attribute and no contents created by other people after that
+        $self->Limit(
+            LEFTJOIN   => $txn_aliases[0],
+            FIELD      => 'Created',
+            VALUE      => $db_type eq 'Oracle' ? "DBMS_LOB.substr($alias.Content, 19)" : "$alias.Content",
+            OPERATOR   => '>',
+            QUOTEVALUE => 0,
+            $function ? ( FUNCTION => $function ) : (),
+        );
+        $self->Limit(
+            %rest,
+            ALIAS           => $alias,
+            FIELD           => 'id',
+            OPERATOR        => 'IS NOT',
+            VALUE           => 'NULL',
+            QUOTEVALUE      => 0,
+        );
+        $self->Limit(
+            ALIAS           => $txn_aliases[0],
+            FIELD           => 'id',
+            OPERATOR        => 'IS',
+            VALUE           => 'NULL',
+            QUOTEVALUE      => 0,
+            ENTRYAGGREGATOR => 'AND',
+        );
+        $self->_CloseParen();
+
+        $self->_OpenParen();
+
+        # Has no SeenUpTo attribute and no contents created by other people ever
+        $self->Limit(
+            ALIAS           => $alias,
+            FIELD           => 'id',
+            OPERATOR        => 'IS',
+            VALUE           => 'NULL',
+            QUOTEVALUE      => 0,
+            ENTRYAGGREGATOR => 'OR',
+        );
+        $self->Limit(
+            ALIAS           => $txn_aliases[1],
+            FIELD           => 'id',
+            OPERATOR        => 'IS',
+            VALUE           => 'NULL',
+            QUOTEVALUE      => 0,
+            ENTRYAGGREGATOR => 'AND',
+        );
+        $self->_CloseParen();
+
+        $self->_CloseParen();
+    }
 }
 
 
