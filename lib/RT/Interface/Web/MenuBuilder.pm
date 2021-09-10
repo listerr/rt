@@ -756,7 +756,7 @@ sub BuildMainNav {
                         Search          => 1,
                         Plugin          => 'Tickets',
                         'Tickets:query' => $rss_data{'Query'},
-                        'Tickets:limit' => $query_args->{'Rows'},
+                        'Tickets:limit' => $query_args->{'RowsPerPage'},
                     );
 
                     $more->child(
