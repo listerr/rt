@@ -2015,6 +2015,12 @@ sub ExpandShortenerCode {
                 }
             }
         }
+        else {
+            RT->Logger->warning("Could not find short code $sc");
+            push @{ $HTML::Mason::Commands::session{Actions}{''} },
+                HTML::Mason::Commands::loc( "Could not find short code [_1]", $sc );
+            $HTML::Mason::Commands::session{'i'}++;
+        }
     }
 }
 
