@@ -76,12 +76,13 @@
     SavedChartSearchId => $ARGS{'SavedChartSearchId'},
     ObjectType => $ObjectType,
     @ExtraQueryParams ? ( map { $_ => $ARGS{$_} } grep { defined $ARGS{$_} } 'ExtraQueryParams', @ExtraQueryParams ) : (),
-    PassArguments => [qw(Query Format Rows Page Order OrderBy SavedSearchId SavedChartSearchId Class ObjectType ExtraQueryParams), @ExtraQueryParams],
+    sc => $ARGS{sc},
+    PassArguments => [qw(sc Query Format Rows Page Order OrderBy SavedSearchId SavedChartSearchId Class ObjectType ExtraQueryParams), @ExtraQueryParams],
 &>
 % }
 % $m->callback( ARGSRef => \%ARGS, CallbackName => 'AfterResults' );
 
-% my %hiddens = (Query => $Query, Format => $Format, Class => $Class, ObjectType => $ObjectType, Rows => $Rows, OrderBy => $OrderBy, Order => $Order, HideResults => $HideResults, Page => $Page, SavedChartSearchId => $SavedChartSearchId );
+% my %hiddens = ( sc => $ARGS{sc}, Query => $Query, Format => $Format, Class => $Class, ObjectType => $ObjectType, Rows => $Rows, OrderBy => $OrderBy, Order => $Order, HideResults => $HideResults, Page => $Page, SavedChartSearchId => $SavedChartSearchId );
 <div align="right" class="refresh">
 <form method="POST" action="<%RT->Config->Get('WebPath')%>/Search/Results.html">
 % foreach my $key (keys(%hiddens)) {
@@ -261,14 +262,15 @@ if (RT->Config->Get('RestrictReferrer') and $refresh and not $m->request_args->{
 
 my %link_rel;
 my $genpage = sub {
-    return $m->comp(
-        '/Elements/QueryString',
-        Query   => $Query,
-        Format  => $Format,
-        Rows    => $Rows,
-        OrderBy => $OrderBy,
-        Order   => $Order,
-        Page    => shift(@_),
+    return QueryString(
+        ShortenSearchQuery(
+            Query   => $Query,
+            Format  => $Format,
+            Rows    => $Rows,
+            OrderBy => $OrderBy,
+            Order   => $Order,
+            Page    => shift(@_),
+        )
     );
 };
 
