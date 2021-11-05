@@ -844,7 +844,7 @@ sub BuildMainNav {
                 map {
                     my $p = $_;
                     $p => $HTML::Mason::Commands::DECODED_ARGS->{$p} || $current_search->{$p}
-                } qw(Query Format OrderBy Order Page)
+                } qw(Query Format OrderBy Order Page ObjectType SavedChartSearchId ResultPage ExtraQueryParams)
             ),
         );
 
