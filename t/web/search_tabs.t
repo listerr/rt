@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 
-use RT::Test tests => 21;
+use RT::Test tests => undef;
 my ($baseurl, $agent) = RT::Test->started_ok;
 
 my $ticket = RT::Ticket->new(RT->SystemUser);
@@ -84,3 +84,22 @@ $agent->text_contains('id = 1 OR id = 2 OR id = 3');
 $agent->form_name('SaveSearch');
 is($agent->value('SavedSearchDescription'), 'this is my saved chart');
 
+for my $tab ( qw/edit_search advanced results bulk chart/ ) {
+    $agent->follow_link_ok( { id => "page-$tab" } );
+    ok( $agent->dom->at("#li-page-$tab.active"), "Tab $tab is active" );
+}
+
+$agent->follow_link_ok( { id => 'search-assets-assetsql' } );
+$agent->submit_form_ok(
+    {   form_name => 'BuildQuery',
+        fields    => { ValueOfCatalog => 'General assets' }
+    },
+    'Create an asset search'
+);
+
+for my $tab ( qw/edit_search advanced results bulk/ ) {
+    $agent->follow_link_ok( { id => "page-$tab" } );
+    ok( $agent->dom->at("#li-page-$tab.active"), "Tab $tab is active" );
+}
+
+done_testing;
