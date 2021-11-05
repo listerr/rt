@@ -215,6 +215,43 @@ sub constant_time_eq {
     return 0 + not $result;
 }
 
+=head2 uri_eq STRING1 STRING2
+
+Compares two strings for equality in the perspective of URI.
+
+=cut
+
+sub uri_eq {
+    return 0 unless @_ >= 2;
+
+    require URI;
+    my $first_uri;
+    for my $item (@_) {
+
+        # Clean up
+        $item =~ s!/{2,}!/!g;
+        $item =~ s/index\.html$//;
+        $item =~ s/\/+$//;
+
+        # Get query data
+        my $base       = URI->new($item);
+        my @query_form = $base->query_form;
+
+        # Initialize a new object to not inherit query convention of original
+        # string, like ";" VS "&" and "+" VS " ".
+        $base->query_form( {} );
+        my $uri = URI->new($base);
+        $uri->query_form(@query_form);
+        if (defined $first_uri) {
+            return $first_uri eq $uri;
+        }
+        else {
+            $first_uri = $uri;
+        }
+    }
+    return 1;
+}
+
 =head2 EntityLooksLikeEmailMessage( MIME::Entity )
 
 Check MIME type headers for entities that look like email.
