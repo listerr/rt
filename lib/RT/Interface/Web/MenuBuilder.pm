@@ -634,6 +634,7 @@ sub BuildMainNav {
 
         $fallback_query_args{Class} ||= $class;
         $fallback_query_args{ObjectType} ||= 'RT::Ticket' if $class eq 'RT::Transactions';
+        $fallback_query_args{Page} ||= 1;
 
         if ($query_string) {
             $args = '?' . $query_string;
