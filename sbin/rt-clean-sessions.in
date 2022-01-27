@@ -68,7 +68,7 @@ BEGIN { # BEGIN RT CMD BOILERPLATE
 
 use Getopt::Long;
 my %opt;
-GetOptions( \%opt, "older=s", "debug", "help|h", "skip-user" );
+GetOptions( \%opt, "older=s", "debug", "help|h", "skip-user", "clean-all" );
 
 
 if ( $opt{help} ) {
@@ -117,7 +117,7 @@ if ( $opt{'older'} or $alogoff ) {
     RT::Interface::Web::Session->ClearOld( $min );
 }
 
-RT::Interface::Web::Session->ClearByUser
+RT::Interface::Web::Session->ClearByUser( $opt{'clean-all'} )
     unless $opt{'skip-user'};
 
 exit(0);
@@ -130,13 +130,14 @@ rt-clean-sessions - clean old and duplicate RT sessions
 
 =head1 SYNOPSIS
 
-     rt-clean-sessions [--debug] [--older <NUM>[H|D|M|Y]]
+     rt-clean-sessions [--debug] [--older <NUM>[H|D|M|Y]] [--skip-user] [--clean-all]
 
      rt-clean-sessions
      rt-clean-sessions --debug
      rt-clean-sessions --older 10D
      rt-clean-sessions --debug --older 1M
      rt-clean-sessions --older 10D --skip-user
+     rt-clean-sessions --clean-all
 
 =head1 DESCRIPTION
 
@@ -163,6 +164,12 @@ older than 1 month.
 By default only one session per user left in the DB, so users that have
 sessions on multiple computers or in different browsers will be logged out.
 Use this option to avoid this.
+
+=item clean-all
+
+Use this option to clear all sessions.
+
+If the --skip-user option is used then the --clean-all option has no effect.
 
 =item debug
 
