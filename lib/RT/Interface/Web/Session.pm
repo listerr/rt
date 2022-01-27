@@ -284,12 +284,14 @@ sub ClearOrphanLockFiles {
 =head3 ClearByUser
 
 Checks all sessions and if user has more then one session
-then leave only the latest one.
+then leave only the latest one unless optional clear all
+parameter is true then delete all.
 
 =cut
 
 sub ClearByUser {
     my $self = shift || __PACKAGE__;
+    my $clear_all = shift;
     my $class = $self->Class;
     my $attrs = $self->Attributes;
 
@@ -304,7 +306,7 @@ sub ClearByUser {
             next;
         }
         if( $session{'CurrentUser'} && $session{'CurrentUser'}->id ) {
-            unless( $seen{ $session{'CurrentUser'}->id }++ ) {
+            unless( $clear_all || $seen{ $session{'CurrentUser'}->id }++ ) {
                 $RT::Logger->debug("skipped session '$id', first user's session");
                 next;
             }
