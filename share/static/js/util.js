@@ -863,6 +863,32 @@ jQuery(function() {
             file_input.prop('checked', false);
         });
     });
+
+    jQuery('input[name=QueueChanged]').each(function() {
+        var form = jQuery(this).closest('form');
+        var mark_changed = function(name) {
+            if ( !form.find('input[name=ChangedField][value="' + name +'"]').length ) {
+                jQuery('<input type="hidden" name="ChangedField" value="' + name + '">').appendTo(form);
+            }
+        };
+
+        form.find(':input[name!=ChangedField]').change(function() {
+            mark_changed(jQuery(this).attr('name'));
+        });
+
+        var plainMessageBox  = form.find('.messagebox');
+        var messageBoxId = plainMessageBox.attr('id');
+        if (CKEDITOR.instances && CKEDITOR.instances[messageBoxId]) {
+            var richTextEditor = CKEDITOR.instances[messageBoxId];
+            if ( richTextEditor ) {
+                richTextEditor.on('instanceReady', function () {
+                    this.on('change', function () {
+                        mark_changed(plainMessageBox.attr('name'));
+                    });
+                });
+            }
+        }
+    });
 });
 
 /* inline edit */
