@@ -128,7 +128,7 @@ sub check_history_page_item {
     } else {
         $m->text_contains($change->{new_value});
     }
-    $m->text_contains("$change->{setting} changed", 'fetched tx has changed field');
+    $m->text_like(qr/$change->{setting} [added|changed|deleted]/, 'fetched tx has changed field');
 }
 
 sub compactify {
