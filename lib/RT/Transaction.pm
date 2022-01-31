@@ -1429,10 +1429,15 @@ sub _CanonicalizeRoleName {
             my $oldobj = RT::Configuration->new($self->CurrentUser);
             $oldobj->Load($self->OldReference);
             $old_value = $oldobj->Content;
-            return ('[_1] changed from "[_2]" to "[_3]"', $self->Field, $old_value // '', $new_value // ''); #loc()
         }
-        else {
-            return ('[_1] changed to "[_2]"', $self->Field, $new_value // ''); #loc()
+
+        if ( ! defined($old_value) || ( $old_value eq '' ) ) {
+            return ( "[_1] added", $self->Field );   #loc()
+        }
+        if ( ! defined($new_value) || ( $new_value eq '' ) ) {
+            return ( "[_1] deleted", $self->Field );   #loc()
+        } else {
+            return ( "[_1] changed", $self->Field );   #loc()
         }
     },
     DeleteConfig => sub  {
