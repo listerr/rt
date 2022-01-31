@@ -83,18 +83,40 @@ $m->comp(
 ) if $ShowBody;
 </%PERL>
   </div>
-% if ($Transaction->Type eq 'CustomField' && $Transaction->Field ) {
+% if ( ( $Transaction->Type eq 'CustomField' && $Transaction->Field ) or ( $Transaction->Type eq 'SetConfig' ) ) {
 %     my ($old, $new);
 %     my $cf = RT::CustomField->new( $session{CurrentUser} );
 %     $cf->SetContextObject( $Transaction->Object );
 %     $cf->Load( $Transaction->Field );
-%     if ($cf->Id && $cf->Type =~ /text/i) {
+%     if ( ( $cf->Id && $cf->Type =~ /text/i ) ) {
 %        $old = $Transaction->OldValue // loc('(no value)');
 %        $old = $m->comp('/Elements/ScrubHTML', Content => $old);
 %        $old =~ s|\n|<br />|g;
 %        $new = $Transaction->NewValue // loc('(no value)');
 %        $new = $m->comp('/Elements/ScrubHTML', Content => $new);
 %        $new =~ s|\n|<br />|g;
+%     }
+%     elsif ( $Transaction->Type eq 'SetConfig' ) {
+%         # pull in new value from reference if exists
+%         if ( $Transaction->NewReference ) {
+%             my $newobj = RT::Configuration->new($Transaction->CurrentUser);
+%             $newobj->Load($Transaction->NewReference);
+%             $new = $newobj->Content;
+%         }
+%         else {
+%             $new = loc('(no value)');
+%         }
+%         # pull in old value from reference if exists
+%         if ( $Transaction->OldReference ) {
+%             my $oldobj = RT::Configuration->new($Transaction->CurrentUser);
+%             $oldobj->Load($Transaction->OldReference);
+%             $old = $oldobj->Content // loc('(no value)');
+%         }
+%         else {
+%             $old = loc('(no value)');
+%         }
+%     }
+%     if ( $old || $new ) {
 <div class="details hidden" id="txn-<% $Transaction->Id %>-details">
 % if ( $old eq loc('(no value)')  ) {
   <div class="form-row">
@@ -214,6 +236,9 @@ elsif ($txn_type eq 'CustomField' && $Transaction->Field) {
     if ($cf->Id && $cf->Type =~ /text/i) {
         push @actions, { class => 'toggle-txn-details', title => loc('Show Details'), path => '#' };
     }
+}
+elsif ($txn_type eq 'SetConfig') {
+    push @actions, { class => 'toggle-txn-details', title => loc('Show Details'), path => '#' };
 }
 # If the transaction has anything attached to it at all
 elsif ( %$Attachments && $ShowActions ) {
