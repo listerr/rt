@@ -95,6 +95,7 @@ if (delete $ARGS{Update}) {
 
             my $val = $ARGS{$key};
             $val = '' if $val eq '__empty_value__';
+
             my $prev = $ARGS{$key . '-Current'};
             next if $val eq $prev;
 
@@ -107,6 +108,12 @@ if (delete $ARGS{Update}) {
                 push @results, loc("Cannot change [_1]: Permission Denied", $key);
                 $has_error++;
                 next;
+            }
+
+            if (exists $meta->{FormatClass}) {
+                foreach my $unmapped ($m->comp('/Elements/CollectionAsTable/CheckFormat', Class => $meta->{FormatClass}, Format => $val)) {
+                    push @results, loc("Warning: In format [_1], element '[_2]' does not map to an attribute", $key, $unmapped->{original_string});
+                }
             }
 
             if ($is_json) {

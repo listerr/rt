@@ -2059,16 +2059,20 @@ our %META;
         },
     },
     AssetDefaultSearchResultFormat => {
-        Widget => '/Widgets/Form/MultilineString',
+        Widget      => '/Widgets/Form/MultilineString',
+        FormatClass => 'RT__Asset',
     },
     AssetSimpleSearchFormat => {
-        Widget => '/Widgets/Form/MultilineString',
+        Widget      => '/Widgets/Form/MultilineString',
+        FormatClass => 'RT__Asset',
     },
     AssetSummaryFormat => {
-        Widget => '/Widgets/Form/MultilineString',
+        Widget      => '/Widgets/Form/MultilineString',
+        FormatClass => 'RT__Asset',
     },
     AssetSummaryRelatedTicketsFormat => {
-        Widget => '/Widgets/Form/MultilineString',
+        Widget      => '/Widgets/Form/MultilineString',
+        FormatClass => 'RT__Ticket',
     },
     DefaultSearchResultFormat => {
         Widget => '/Widgets/Form/MultilineString',
@@ -2098,7 +2102,8 @@ our %META;
         Widget => '/Widgets/Form/MultilineString',
     },
     UserAssetExtraInfo => {
-        Widget => '/Widgets/Form/MultilineString',
+        Widget      => '/Widgets/Form/MultilineString',
+        FormatClass => 'RT__User',
     },
     UserDataResultFormat => {
         Widget => '/Widgets/Form/MultilineString',
