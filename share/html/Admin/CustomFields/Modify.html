@@ -217,6 +217,21 @@ jQuery( function() {
   </div>
 </div>
 
+% if ( $CustomFieldObj->Id && $CustomFieldObj->SupportNumericValues ) {
+<div class="form-row">
+  <div class="label col-3"></div>
+  <div class="value col-9">
+    <input type="hidden" class="hidden" name="SetNumericValues" value="1" />
+    <div class="custom-control custom-checkbox">
+      <input type="checkbox" class="custom-control-input" id="NumericValues" name="NumericValues" value="1" <% $NumericValuesChecked |n %> />
+      <label class="custom-control-label" for="NumericValues">
+        <&|/l&>Values are numeric</&>
+      </label>
+    </div>
+  </div>
+</div>
+% }
+
 % $m->callback(CallbackName => 'BeforeEnabled', CustomField => $CustomFieldObj, CFvalidations => \@CFvalidations);
 
 <div class="form-row">
@@ -469,6 +484,10 @@ if ( $ARGS{'Update'} && $id ne 'new' ) {
         }
     }
 
+    if ( $CustomFieldObj->SupportNumericValues ) {
+        my ( $ret, $msg ) = $CustomFieldObj->SetNumericValues( $NumericValues ? 1 : 0 );
+        push @results, $msg;
+    }
 }
 
 # for old tests only, users should use ajax calls and this should never be called in real usage.
@@ -518,6 +537,9 @@ $EnabledChecked = '' if $CustomFieldObj->Disabled;
 my $UniqueValuesChecked = qq[checked="checked"];
 $UniqueValuesChecked = '' if !$CustomFieldObj->UniqueValues;
 
+my $NumericValuesChecked = '';
+$NumericValuesChecked = qq[checked="checked"] if $CustomFieldObj->NumericValues;
+
 my @CFvalidations = (
     '(?#Mandatory).',
     '(?#Digits)^[\d.]+$',
@@ -540,6 +562,7 @@ $SetEnabled => undef
 $Enabled => 0
 $SetUniqueValues => undef
 $UniqueValues => 0
+$NumericValues => 0
 $ValuesClass => 'RT::CustomFieldValues'
 $CanonicalizeClass => undef
 $RenderType => undef
