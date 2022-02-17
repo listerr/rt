@@ -481,10 +481,10 @@ Here is an example of using a subroutine reference as a value for Object:
         Object      => sub {
             my $GroupName = 'SomeQueue Group';
             my $group     = RT::Group->new( RT->SystemUser );
-    
+
             my( $ret, $msg ) = $group->LoadUserDefinedGroup( $GroupName );
             die $msg unless $ret;
-    
+
             return $group;
         },
         Content     => {
@@ -583,6 +583,80 @@ No C<Initial> elements will be used.
 =item C<@Final>
 
 No C<Final> elements will be used.
+
+=back
+
+=head1 Using rt-dump-initialdata to Migrate Changes to Another RT
+
+If you have multiple production RTs running in different teams, or have RT
+instances running in multiple environments (dev, test, production, etc.), you
+may want to maintain similar configuration across instances. RT provides
+tooling to help identify and propagate changes to other copies of RT.
+
+=over
+
+=item Taking a Snapshot of the Source Database
+
+It is good practice to run the L<rt-validator> tool to identify and resolve any
+errors in the RT database before starting:
+
+    /opt/rt5/sbin/rt-validator --check
+    /opt/rt5/sbin/rt-validator --resolve # If necessary
+
+You can then snapshot your configuration data:
+
+    /opt/rt5/sbin/rt-dump-initialdata --sync
+
+When finished, you'll have a directory and file in the format F<yoursite.com:YYYY-MM-DD/initialdata.json>.
+Any changes made after this point will show in the changes file produced in the
+next step.
+
+=item Capturing Changes for Migration
+
+Make changes to your RT configuration through the web interface. When you've
+completed the changes you want to migrate to another RT, you need to make a
+differential snapshot of RT's configuration:
+
+    /opt/rt5/sbin/rt-dump-initialdata --sync --directory your_dir/ \
+        --base yoursite.com:YYYY-MM-DD/initialdata.json
+
+(fill in the date appropriately)
+
+A new output directory B<must> be provided if you are making a diff file on the
+same day as the original configuration dump file was produced (as you cannot
+dump configuration data twice to the same directory); otherwise the C<--directory>
+directive can be omitted.
+
+You will now have a new directory, F<your_dir/>, with two files of importance.
+F<initialdata.json> is the full dump of configuration data, and F<changes.json>
+has only that data which changed since the original dump. Before migrating changes
+to the target RT instance, you should review the contents of F<changes.json> for a
+quick sanity check.
+
+=item Ensure JSON Format Handler Activated
+
+By default, RT is not configured to import JSON data. The JSON format handler needs
+to be enabled before the change file produced in the prior step can be imported.
+See L<etc/RT_Config.pm#l#InitialdataFormatHandlers> for details on enabling the
+JSON format.
+
+=item Importing Data
+
+Copy F<changes.json> to your target server by whatever means make sense for your
+organization. Once the file is there, you can import it into your RT instance:
+
+    /opt/rt5/rt-setup-database --action insert \
+        --datafile path/to/changes.json
+
+It is recommended that you make a database backup of your target RT before
+importing configuration changes. See L<docs/system_administration/database>
+for more information.
+
+=item Test
+
+Test your new system to confirm all of the expected changes have taken place.
+The migrated configuration changes should behave exactly as they did on the
+original RT server.
 
 =back
 
