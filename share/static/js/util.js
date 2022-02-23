@@ -374,7 +374,11 @@ function ReplaceAllTextareas() {
             // Set the type
             type.val("text/html");
 
-            CKEDITOR.replace(textArea.name,{ width: '100%', height: RT.Config.MessageBoxRichTextHeight });
+            CKEDITOR.replace(textArea.name, {
+                width: '100%',
+                height: RT.Config.MessageBoxRichTextHeight,
+                toolbarStartupExpanded: jQuery.cookie('cke_' + textArea.name + '-toolbar') == 0 ? false : true
+            });
 
             jQuery('[name="' + textArea.name + '___Frame"]').addClass("richtext-editor");
         }
@@ -862,6 +866,14 @@ jQuery(function() {
         var db_input = form.find(':input[name=' + db_name + ']');
         db_input.change(function() {
             file_input.prop('checked', false);
+        });
+    });
+
+    CKEDITOR.on('instanceReady', function(e){
+        jQuery('div.cke.' + e.editor.id + ' .cke_toolbox_collapser').click( function() {
+            createCookie(jQuery(this).closest('div.cke').attr('id') + '-toolbar', jQuery(this).hasClass(
+                'cke_toolbox_collapser_min') ? 0 : 1, 365);
+            return 1;
         });
     });
 });
