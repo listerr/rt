@@ -84,7 +84,7 @@
 % }
 <%init>
 my $class = $Article->ClassObj;
-my %include = (Name => 1, Summary => 1, EscapeHTML => 1);
+my %include = (Name => 1, Summary => 1, EscapeHTML => 0);
 my $cfs = $class->ArticleCustomFields;
 while ( my $cf = $cfs->Next ) {
     $include{"CF-Title-" . $cf->Id} = 1;

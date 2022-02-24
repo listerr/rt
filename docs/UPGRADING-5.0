@@ -438,4 +438,16 @@ it will order by EmailAddress.
 
 =back
 
+=head1 UPGRADING FROM 5.0.2 AND EARLIER
+
+=over 4
+
+=item *
+
+RT now supports C<HTML> type for custom fields, so if you have custom fields
+containing C<HTML>(e.g. C<Content> for articles), you can switch type to
+C<HTML> to use CKEditor for editing.
+
+=back
+
 =cut
