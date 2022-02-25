@@ -50,7 +50,7 @@
 <%'-' x length("#".$Article->Id.": ".($Article->Name || loc('(no name)'))) %><% $newline |n %>\
 % }
 % if ( $include{Summary} && ($Article->Summary||'') =~ /\S/ ) {
-<% $Article->Summary %><% $newline |n %>\
+<% $Article->Summary %><% $newline |n %><% $newline |n %>\
 % }
 % while (my $cf = $cfs->Next) {
 %   next unless $include{"CF-Title-".$cf->Id} or $include{"CF-Value-".$cf->Id};
@@ -83,6 +83,7 @@
 %       }
 %     } 
 %   }
+<%  $newline |n %>\
 % }
 <%init>
 my $class = $Article->ClassObj;
