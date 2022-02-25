@@ -62,10 +62,10 @@
 </form>
 
   <div class="form-row">
-    <span class="label col-auto">
+    <span class="label col-auto font-weight-bold">
 % if ($Articles_Content) {
-%   if ($articles_basics->Count || $articles_content->Count) {
-<&|/l,$Articles_Content&>Articles matching [_1]</&>
+%   if ($articles->Count) {
+<% $articles->Count %> <&|/l,$Articles_Content&>Articles matching [_1]</&>
 %   } else {
 <&|/l,$Articles_Content&>No Articles match [_1]</&>
 %   }
@@ -73,48 +73,51 @@
     </span>
   </div>
 
-% my %dedupe_articles;
-% while (my $article = $articles_content->Next) {
-%   $dedupe_articles{$article->Id}++;
-  <div class="form-row">
-    <span class="value col-auto">
-      <a href="Display.html?id=<%$article->Id%>"><%$article->Name || loc('(no name)')%>: <%$article->Summary%></a>
-    </span>
-  </div>
+
+% if ($articles->BuildSelectCountQuery =~ /WHERE/i) {
+<& /Elements/CollectionList,
+    Collection => $articles,
+    AllowSorting => 1,
+    OrderBy => \@OrderBy,
+    Order => \@Order,
+    Format => $format,
+    GenericQueryArgs => { Articles_Content => $Articles_Content, },
+    &>
 % }
 
-% while (my $article = $articles_basics->Next) {
-%   next if $dedupe_articles{$article->Id};
-  <div class="form-row">
-    <span class="value col-auto">
-      <a href="Display.html?id=<%$article->Id%>"><%$article->Name || loc('(no name)')%>: <%$article->Summary%></a>
-    </span>
-  </div>
-% }
-</div>
 <%init>
 use RT::Articles;
 
-my $articles_content = RT::Articles->new( $session{'CurrentUser'} );
-my $articles_basics = RT::Articles->new( $session{'CurrentUser'} );
+my $articles = RT::Articles->new( $session{'CurrentUser'} );
 if ( $ARGS{'Articles_Content'} ) {
-    $articles_content->LimitCustomField( VALUE => $ARGS{'Articles_Content'},
-                                                OPERATOR => 'LIKE' );
-
-    $articles_basics->Limit( SUBCLAUSE       => 'all',
-                             FIELD           => 'Name',
-                             OPERATOR        => 'LIKE',
-                             VALUE           => $ARGS{'Articles_Content'},
-                             ENTRYAGGREGATOR => "OR" );
-    $articles_basics->Limit( SUBCLAUSE       => 'all',
-                             FIELD           => 'Summary',
-                             OPERATOR        => 'LIKE',
-                             VALUE           => $ARGS{'Articles_Content'},
-                             ENTRYAGGREGATOR => "OR" );
+    $articles->LimitCustomField( VALUE           => $ARGS{'Articles_Content'},
+                                 OPERATOR        => 'LIKE',
+                                 ENTRYAGGREGATOR => "OR",
+                                 SUBCLAUSE       => 'all' );
+    $articles->Limit( SUBCLAUSE       => 'all',
+                      FIELD           => 'Name',
+                      OPERATOR        => 'LIKE',
+                      VALUE           => $ARGS{'Articles_Content'},
+                      ENTRYAGGREGATOR => "OR" );
+    $articles->Limit( SUBCLAUSE       => 'all',
+                      FIELD           => 'Summary',
+                      OPERATOR        => 'LIKE',
+                      VALUE           => $ARGS{'Articles_Content'},
+                      ENTRYAGGREGATOR => "OR" );
 }
 
+my $format = q{
+    '<a href="__WebPath__/Articles/Article/Display.html?id=__id__">__id__</a>/TITLE:#',
+    '<a href="__WebPath__/Articles/Article/Display.html?id=__id__">__Name__</a>/TITLE:Name',
+    '__ClassName__',
+    '__CreatedRelative__',
+    '__LastUpdatedRelative__',
+    '__Summary__',
+    '__Topics__', };
 
 </%init>
 <%args>
 $Articles_Content => ''
+@OrderBy => ()
+@Order   => ()
 </%args>
