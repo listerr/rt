@@ -806,6 +806,11 @@ sub ExternalStoreDigest {
     return $self->_Value( 'LargeContent' );
 }
 
+sub _ContentIsPermissive {
+    my $self = shift;
+    return $self->CustomFieldObj->_ContentIsPermissive;
+}
+
 RT::Base->_ImportOverlays();
 
 1;
