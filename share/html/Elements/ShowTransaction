@@ -45,7 +45,7 @@
 %# those contributions and any derivatives thereof.
 %#
 %# END BPS TAGGED BLOCK }}}
-<div class="<% join ' ', @classes %>" data-transaction-id="<% $Transaction->id %>">
+<div class="<% join ' ', @classes %>" data-transaction-id="<% $Transaction->id %>" data-transaction-max-lines="<% $MaxLines %>">
   <div class="metadata">
 % if ( $actions ) {
     <span class="actions"><% $actions |n %></span>
@@ -131,13 +131,75 @@ $m->comp(
   </div>
 % }
 % else {
+%   # if the new or old value is more than $MaxLines show two divs
+%   # one with value truncated to $MaxLines and one with entire value
+%   # use bootstrap collapse class to toggle between divs
+%   my ( $short_old, $short_new );
+%   my @lines = split( /<br \/>/, $old );
+%   if ( scalar(@lines) > $MaxLines ) {
+%     $short_old = join '<br />', @lines[ 0 .. ( $MaxLines - 1 ) ];
+%   }
+%   @lines = split( /<br \/>/, $new );
+%   if ( scalar(@lines) > $MaxLines ) {
+%     $short_new = join '<br />', @lines[ 0 .. ( $MaxLines - 1 ) ];
+%   }
   <div class="form-row">
     <div class="label col-2"><% loc('From') %>:</div>
+%   if ( $short_old ) {
+%     my ( $class_old, $id_all_old, $id_less_old );
+%     $class_old   = "txn-collapse-old-" . $Transaction->Id;
+%     $id_all_old  = "txn-collapse-all-old-" . $Transaction->Id;
+%     $id_less_old = "txn-collapse-less-old-" . $Transaction->Id;
+    <div>
+      <div>
+        <div class="collapse show <% $class_old %>" id="<% $id_less_old %>">
+          <% $short_old |n %>
+          <p>
+            <button class="btn btn-primary" type="button" data-toggle="collapse" data-target=".<% $class_old %>" aria-expanded="false" aria-controls="<% $id_less_old %> <% $id_all_old %>"><% loc('Show all') %></button>
+          </p>
+        </div>
+      </div>
+      <div>
+        <div class="collapse <% $class_old %>" id="<% $id_all_old %>">
+          <% $old |n %>
+          <p>
+            <button class="btn btn-primary" type="button" data-toggle="collapse" data-target=".<% $class_old %>" aria-expanded="false" aria-controls="<% $id_less_old %> <% $id_all_old %>"><% loc('Show less') %></button>
+          </p>
+        </div>
+      </div>
+    </div>
+%   } else {
     <div class="value col-10"><% $old |n %></div>
+%   }
   </div>
   <div class="form-row">
     <div class="label col-2"><% loc('To') %>:</div>
+%   if ( $short_new ) {
+%     my ( $class_new, $id_all_new, $id_less_new );
+%     $class_new   = "txn-collapse-new-" . $Transaction->Id;
+%     $id_all_new  = "txn-collapse-all-new-" . $Transaction->Id;
+%     $id_less_new = "txn-collapse-less-new-" . $Transaction->Id;
+    <div>
+      <div>
+        <div class="collapse show <% $class_new %>" id="<% $id_less_new %>">
+          <% $short_new |n %>
+          <p>
+            <button class="btn btn-primary" type="button" data-toggle="collapse" data-target=".<% $class_new %>" aria-expanded="false" aria-controls="<% $id_less_new %> <% $id_all_new %>"><% loc('Show all') %></button>
+          </p>
+        </div>
+      </div>
+      <div>
+        <div class="collapse <% $class_new %>" id="<% $id_all_new %>">
+          <% $new |n %>
+          <p>
+            <button class="btn btn-primary" type="button" data-toggle="collapse" data-target=".<% $class_new %>" aria-expanded="false" aria-controls="<% $id_less_new %> <% $id_all_new %>"><% loc('Show less') %></button>
+          </p>
+        </div>
+      </div>
+    </div>
+%   } else {
     <div class="value col-10"><% $new |n %></div>
+%   }
   </div>
   <div class="form-row diff">
     <div class="label col-2"><% loc('Changes') %>:</div>
@@ -161,6 +223,7 @@ $HasTxnCFs => 1
 $ShowBody => 1
 $ShowActions => 1
 $RowNum => 1
+$MaxLines => 3
 
 $DisplayPath => undef
 $AttachmentPath => undef
