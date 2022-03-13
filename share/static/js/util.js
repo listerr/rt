@@ -1189,7 +1189,8 @@ function toggleTransactionDetails () {
     var diff = details_div.find('.diff div.value');
     if (!diff.children().length) {
         diff.load(RT.Config.WebHomePath + '/Helpers/TextDiff', {
-            TransactionId: txn_div.attr('data-transaction-id')
+            TransactionId: txn_div.attr('data-transaction-id'),
+            MaxLines: txn_div.attr('data-transaction-max-lines')
         });
     }
 
