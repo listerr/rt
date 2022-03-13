@@ -45,6 +45,7 @@
 %# those contributions and any derivatives thereof.
 %#
 %# END BPS TAGGED BLOCK }}}
+
 <%INIT>
 
 my ( $old, $new );
@@ -70,10 +71,44 @@ my $diff = word_diff( \$old, \$new, { STYLE => 'HTML' } );
 $diff = $m->comp( '/Elements/ScrubHTML', Content => $diff );
 $diff =~ s|\n|<br />|g;
 
+# if the diff is more than $MaxLines lines we have two divs
+# one with first 3 lines of the value and one with entire value
+# use bootstrap collapse class to toggle between divs
+my ( $short_diff, $class, $id_all, $id_less );
+my @lines = split( /<br \/>/, $diff );
+if ( scalar(@lines) > $MaxLines ) {
+    $short_diff = join '<br />', @lines[ 0 .. ( $MaxLines - 1 ) ];
+    $class      = "txn-collapse-$TransactionId";
+    $id_all     = "txn-collapse-all-$TransactionId";
+    $id_less    = "txn-collapse-less-$TransactionId";
+}
+
 </%INIT>
+% if ( $short_diff ) {
+<div>
+  <div>
+    <div class="collapse show <% $class %>" id="<% $id_less %>">
+      <% $short_diff |n %>
+      <p>
+        <button class="btn btn-primary" type="button" data-toggle="collapse" data-target=".<% $class %>" aria-expanded="false" aria-controls="<% $id_less %> <% $id_all %>"><% loc('Show all') %></button>
+      </p>
+    </div>
+  </div>
+  <div>
+    <div class="collapse <% $class %>" id="<% $id_all %>">
+      <% $diff |n %>
+      <p>
+        <button class="btn btn-primary" type="button" data-toggle="collapse" data-target=".<% $class %>" aria-expanded="false" aria-controls="<% $id_less %> <% $id_all %>"><% loc('Show less') %></button>
+      </p>
+    </div>
+  </div>
+</div>
+% } else {
 <% $diff |n %>
+% }
 % $m->abort();
 
 <%ARGS>
 $TransactionId => undef
+$MaxLines => 3
 </%ARGS>
