@@ -48,6 +48,7 @@
 <%ARGS>
 %Table => ()
 $Query => undef
+$Class => 'RT::Tickets'
 </%ARGS>
 <%INIT>
 
@@ -93,7 +94,7 @@ foreach my $section (qw(thead tbody tfoot)) {
                 if ( my $q = $cell->{'query'} ) {
                     $m->out(
                         '<a href="'. $eh->(RT->Config->Get('WebPath')) .'/Search/Results.html'
-                        .'?Query='. $eu->(join ' AND ', map "($_)", grep defined && length, $Query, $q)
+                        ."?Class=$Class&Query=". $eu->(join ' AND ', map "($_)", grep defined && length, $Query, $q)
                         . $eh->('&') . $base_query
                         . '">'
                     );
