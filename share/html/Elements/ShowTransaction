@@ -88,7 +88,7 @@ $m->comp(
 %     my $cf = RT::CustomField->new( $session{CurrentUser} );
 %     $cf->SetContextObject( $Transaction->Object );
 %     $cf->Load( $Transaction->Field );
-%     if ($cf->Id && $cf->Type =~ /text/i) {
+%     if ($show_cf_diff) {
 %        $old = $Transaction->OldValue // loc('(no value)');
 %        $old = $m->comp('/Elements/ScrubHTML', Content => $old);
 %        $old =~ s|\n|<br />|g;
@@ -192,6 +192,7 @@ if ( $ShowBody && !$Attachments ) {
         foreach @{ $attachments->ItemsArrayRef };
 }
 
+my $show_cf_diff = 0;
 my @actions = ();
 my $txn_type = $Transaction->Type;
 if ( $txn_type =~ /EmailRecord$/ ) {
@@ -211,7 +212,21 @@ elsif ($txn_type eq 'CustomField' && $Transaction->Field) {
     my $cf = RT::CustomField->new( $session{CurrentUser} );
     $cf->SetContextObject( $Transaction->Object );
     $cf->Load( $Transaction->Field );
+
     if ($cf->Id && $cf->Type =~ /text/i) {
+        $show_cf_diff = 1;
+    }
+
+    $m->callback(
+        CallbackName   => 'ModifyShowCFDiff',
+        TransactionObj => $Transaction,
+        Object         => $Object,
+        CustomFieldObj => $cf,
+        ShowDiffRef    => \$show_cf_diff,
+        ARGSRef        => \%ARGS,
+    );
+
+    if ($show_cf_diff) {
         push @actions, { class => 'toggle-txn-details', title => loc('Show Details'), path => '#' };
     }
 }
