@@ -1952,7 +1952,40 @@ our %META;
         Widget => '/Widgets/Form/String',
     },
     Timezone => {
-        Widget => '/Widgets/Form/String',
+        Widget => '/Widgets/Form/Select',
+        WidgetArguments => {
+            Callback => sub { my $ret = { Values => [], ValuesLabel => {} };
+                              # all_names doesn't include deprecated names,
+                              # but those deprecated names still work
+                              #
+                              # N.B. there are hundreds of deprecated names
+                              # so we probably don't want to include them all
+                              my @names = ( DateTime::TimeZone->all_names );
+
+                              my $cur_value = RT->Config->Get('Timezone');
+                              my $file_value = RT->Config->_GetFromFilesOnly('Timezone');
+
+                              # if the current value is deprecated then it won't appear in the list
+                              if ($cur_value and !grep { $_ eq $cur_value } @names) {
+                                  unshift @names, $cur_value
+                              }
+
+                              # if the value found in the config files is deprecated then it
+                              # won't appear in the list unless it's also the same as the
+                              # current value, which will break the ability to reset the option
+                              if ($file_value and $file_value ne $cur_value and !grep { $_ eq $file_value } @names) {
+                                  unshift @names, $file_value
+                              }
+
+                              my $dt = DateTime->now;
+                              foreach my $tzname ( @names ) {
+                                  push @{ $ret->{Values} }, $tzname;
+                                  $dt->set_time_zone( $tzname );
+                                  $ret->{ValuesLabel}{$tzname} = $tzname . ' ' . $dt->strftime('%z');
+                              }
+                              return $ret;
+            },
+        },
     },
     VERPPrefix => {
         Widget => '/Widgets/Form/String',
