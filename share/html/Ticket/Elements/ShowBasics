@@ -52,7 +52,12 @@
   </div>
   <div class="status form-row">
     <div class="label col-3"><&|/l&>Status</&>:</div>
-    <div class="value col-9"><span class="current-value"><% loc($Ticket->Status) %></span></div>
+    <div class="value col-9"><span class="current-value">
+      <% loc($Ticket->Status) %>
+%     if ( my $desc = $Ticket->LifecycleObj->Description($Ticket->Status) ) {
+        <span class="far fa-question-circle icon-helper" data-toggle="tooltip" data-placement="top" data-html="true" data-original-title="<% loc($desc) |n %>"></span>
+%     }
+    </span></div>
   </div>
 % if ( !$Ticket->QueueObj->SLADisabled ) {
   <div class="sla form-row">

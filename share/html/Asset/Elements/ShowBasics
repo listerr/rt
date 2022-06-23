@@ -77,7 +77,12 @@
     <&|/l&>Status</&>:
   </div>
   <div class="value col-9">
-    <span class="current-value"><% $AssetObj->Status || '' %></span>
+    <span class="current-value">
+      <% $AssetObj->Status || '' %>
+%     if ( my $desc = $AssetObj->LifecycleObj->Description($AssetObj->Status) ) {
+        <span class="far fa-question-circle icon-helper" data-toggle="tooltip" data-placement="top"  data-html="true" data-original-title="<% loc($desc) |n %>"></span>
+%     }
+    </span>
   </div>
 </div>
 

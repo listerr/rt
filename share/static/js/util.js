@@ -1196,3 +1196,6 @@ function toggleTransactionDetails () {
 
     return false;
 }
+
+// Allow data-* attributes in select options to render tooltips(initially for status)
+jQuery.fn.selectpicker.Constructor.DEFAULTS.whiteList['*'].push(/^data-.+/);
