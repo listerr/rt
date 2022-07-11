@@ -102,6 +102,13 @@ sub ValidateName {
 
 sub Delete {
     my $self = shift;
+
+    if ($self->CustomFieldObj->RenderType eq 'Checkbox') {
+        if ($self->CustomFieldObj->Values->Count < 3) {
+            return ( 0, $self->loc('A Checkbox must always have at least two values' ));
+        }
+    }
+
     my ( $ret, $msg ) = $self->SUPER::Delete;
     $self->CustomFieldObj->CleanupDefaultValues;
     return ( $ret, $msg );

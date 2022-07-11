@@ -87,6 +87,7 @@ our %FieldTypes = (
             single => [ 'Dropdown',                # loc
                         'Select box',              # loc
                         'List',                    # loc
+                        'Checkbox',                # loc
                       ]
         },
 
@@ -1348,6 +1349,15 @@ sub SetRenderType {
                                 $self->FriendlyType));
     }
 
+    if ( $type eq 'Checkbox' ) {
+        if ( $self->Values->Count < 2 ) {
+            return (0, $self->loc("Must have at least two Values for Render Type Checkbox"));
+        }
+        elsif ( $self->BasedOn ) {
+            return (0, $self->loc("We can't currently render as a Checkbox when basing categories on another custom field.  Please use another render type."));
+        }
+    }
+
     return $self->_Set( Field => 'RenderType', Value => $type, @_ );
 }
 
@@ -2257,6 +2267,9 @@ sub SetBasedOn {
     if ( $self->RenderType =~ /List/ ) {
         return (0, $self->loc("We can't currently render as a List when basing categories on another custom field.  Please use another render type."));
     }
+    elsif ( $self->RenderType eq 'Checkbox' ) {
+        return (0, $self->loc("We can't currently render as a Checkbox when basing categories on another custom field.  Please use another render type."));
+    }
 
     return $self->_Set( Field => 'BasedOn', Value => $value, @_ )
 }
@@ -2506,6 +2519,23 @@ Set RenderType to VALUE.
 Returns (1, 'Status message') on success and (0, 'Error Message') on failure.
 (In the database, RenderType will be stored as a varchar(64).)
 
+Only valid when C<Type> is "Select".  Controls how the CF is displayed when
+editing it.  Valid values are: C<Select box>, C<List>, C<Dropdown>, and C<Checkbox>.
+
+C<List> is either a list of radio buttons when C<MaxValues> is one and a list of
+checkboxes when C<MaxValues> is greater than one.
+
+C<Checkbox> is only available on when C<MaxValues> is one and the field is not
+based on any other custom field.  The CF will render as a checkbox.
+
+A Checkbox CF must always have at least two values.  The first value will be
+used for the C<Unchecked> state and the second value will be used for the
+C<Checked> state.
+
+When updating an object with a C<Checkbox> CF, if the CF is unset it will be
+treated as C<Unchecked> and and will be silently updated to the designated
+C<Unchecked> value.  If the CF has any other value will be treated as
+C<Checked> and will be noisily updated to the designated C<Checked> value.
 
 =cut
 

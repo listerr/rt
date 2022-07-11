@@ -78,6 +78,13 @@
 %   }
 </div>
 </fieldset>
+% } elsif ( $RenderType eq 'Checkbox' ) {
+%   my $CFVs = CachedCustomFieldValues($CustomField);
+%   my $FalseValue = lc $CFVs->First->Name;
+%   my $TrueValue  = lc $CFVs->Next->Name;
+%   my $isChecked = (scalar keys %default) && (not exists $default{$FalseValue});
+  <input type="checkbox" class="custom-control" <% $isChecked ? "checked" : "" %> onclick="document.getElementById('<% $name |n%>').value = this.checked ? '<% $TrueValue %>' : '<% $FalseValue %>'" />
+  <input type="hidden" id="<% $name %>" name="<% $name %>" class="custom-control" value="<% $isChecked ? $TrueValue : $FalseValue %>" />
 % } else {
 % if (@category) {
 %# this hidden select is to supply a full list of values,
