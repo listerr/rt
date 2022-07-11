@@ -83,7 +83,12 @@ if ( $CustomField->LookupType eq 'RT::Queue-RT::Ticket-RT::Transaction' ) {
     <div class="value col-<% $ValueCols %> <% $count ? '' : ' no-value' %>">
       <span class="current-value">
 % unless ( $count ) {
+%   my $comp = 'ShowCustomField' . $CustomField->Type . $CustomField->RenderType . 'Unset';
+%   if ( $m->comp_exists( $comp ) ) {
+%       $m->comp( $comp, CustomFieldObj => $CustomField );
+%   } else {
 <&|/l&>(no value)</&>
+%   }
 % } elsif ( $count == 1 ) {
 %   $print_value->( $CustomField, $Values->First );
 % } else {
