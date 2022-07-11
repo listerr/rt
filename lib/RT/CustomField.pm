@@ -715,7 +715,7 @@ sub DeleteValue {
 
     my ($ok, $msg) = $val_to_del->Delete;
     unless ( $ok ) {
-        return (0, $self->loc("Custom field value could not be deleted"));
+        return (0, $msg || $self->loc("Custom field value could not be deleted"));
     }
     return ($ok, $self->loc("Custom field value deleted"));
 }
@@ -2101,7 +2101,7 @@ sub DeleteValueForObject {
 
     my ($ok, $msg) = $oldval->Delete();
     unless ($ok) {
-        return(0, $self->loc("Custom field value could not be deleted"));
+        return(0, $msg || $self->loc("Custom field value could not be deleted"));
     }
     return($oldval->Id, $self->loc("Custom field value deleted"));
 }
