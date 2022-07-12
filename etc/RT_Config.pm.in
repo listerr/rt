@@ -2839,6 +2839,14 @@ Set(%PriorityAsString,
     Default => { Low => 0, Medium => 50, High => 100 },
 );
 
+=item C<$ShowLifecycleViewer>
+
+Set to 1 to show lifecycle viewer on ticket/asset display pages.
+
+=cut
+
+Set($ShowLifecycleViewer, 0);
+
 =back
 
 =head2 Group Summary Configuration
