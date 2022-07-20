@@ -4,6 +4,22 @@ use warnings;
 use RT::Test::Crypt SMIME => 1, tests => undef;
 use Digest::MD5 qw(md5_hex);
 
+use IPC::Run3 0.036 'run3';
+use RT::Util 'safe_run_child';
+
+{
+    my ($in,$out,$err) = ('','','');
+
+    safe_run_child { run3(
+        [ RT::Crypt::SMIME::OpenSSLPath(), 'version' ],
+        \$in, \$out, \$err,
+    ) };
+
+    if ($out =~ / 3/) {
+        push @{ RT->Config->Get('SMIME')->{Providers} }, 'default', 'legacy';
+    }
+}
+
 my $test = 'RT::Test::Crypt';
 my $mails = $test->smime_mail_set_path;
 
