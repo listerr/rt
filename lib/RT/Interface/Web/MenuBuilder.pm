@@ -749,21 +749,21 @@ sub BuildMainNav {
                     $current_user->UserObj->GenerateAuthString( $rss_data{Query} ),
                     $rss_data{Query};
                 $more->child( ical => title => loc('iCal'), path => '/NoAuth/iCal/' . $ical_path );
+            }
 
-                #XXX TODO better abstraction of SuperUser right check
-                if ( $current_user->HasRight( Right => 'SuperUser', Object => RT->System ) ) {
-                    my $shred_args = QueryString(
-                        Search          => 1,
-                        Plugin          => 'Tickets',
-                        'Tickets:query' => $rss_data{'Query'},
-                        'Tickets:limit' => $query_args->{'Rows'},
-                    );
+            if ( $current_user->HasRight( Right => 'SuperUser', Object => RT->System ) ) {
+                my ( $plugin ) = ( $class =~ /^RT::(.*)$/ );
+                my $shred_args = QueryString(
+                    Search          => 1,
+                    Plugin          => $plugin,
+                    "$plugin:query" => $query_args->{'Query'} || $fallback_query_args{'Query'} || '',
+                    "$plugin:limit" => $query_args->{'Rows'},
+                );
 
-                    $more->child(
-                        shredder => title => loc('Shredder'),
-                        path     => '/Admin/Tools/Shredder/?' . $shred_args
-                    );
-                }
+                $more->child(
+                    shredder => title => loc('Shredder'),
+                    path     => '/Admin/Tools/Shredder/?' . $shred_args
+                );
             }
         }
     }
