@@ -3,10 +3,10 @@ use strict;
 use warnings;
 
 use Test::Deep;
-use RT::Test::Shredder nodb => 1, tests => 28;
+use RT::Test::Shredder nodb => 1, tests => 31;
 my $test = "RT::Test::Shredder";
 
-my @PLUGINS = sort qw(Attachments Base Objects SQLDump Summary Tickets Users);
+my @PLUGINS = sort qw(Attachments Base Objects SQLDump Summary Tickets Transactions Users);
 
 use_ok('RT::Shredder::Plugin');
 {
