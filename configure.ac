@@ -497,8 +497,6 @@ AC_CONFIG_FILES([
                  Makefile
                  etc/RT_Config.pm
                  lib/RT/Generated.pm
-                 t/data/configs/apache2.2+mod_perl.conf
-                 t/data/configs/apache2.2+fastcgi.conf
                  t/data/configs/apache2.4+mod_perl.conf
                  t/data/configs/apache2.4+fastcgi.conf
                  t/data/configs/apache2.4+fcgid.conf],
