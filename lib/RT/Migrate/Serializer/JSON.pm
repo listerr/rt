@@ -541,6 +541,17 @@ sub CanonicalizeAttributes {
                         }
                     }
                 }
+                elsif ( $record->{Name} eq 'CustomFieldDefaultValues' ) {
+                    my %value;
+                    for my $id ( keys %{ $record->{Content} || {} } ) {
+                        my $custom_field = RT::CustomField->new( RT->SystemUser );
+                        $custom_field->Load($id);
+                        if ( $custom_field->Id ) {
+                            $value{ $custom_field->Name } = $record->{Content}{$id};
+                        }
+                    }
+                    $record->{Content} = \%value;
+                }
             }
         }
         elsif ( $record->{Name} =~ /DefaultDashboard$/ ) {
