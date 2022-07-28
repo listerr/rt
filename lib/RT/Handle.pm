@@ -1554,10 +1554,31 @@ sub InsertData {
                   $princ->LoadUserDefinedGroup( $item->{'GroupId'} );
                 } elsif ( $item->{'GroupDomain'} eq 'SystemInternal' ) {
                   $princ->LoadSystemInternalGroup( $item->{'GroupType'} );
-                } elsif ( $item->{'GroupDomain'} eq 'RT::System-Role' ) {
-                  $princ->LoadRoleGroup( Object => RT->System, Name => $item->{'GroupType'} );
                 } elsif ( $item->{'GroupDomain'} =~ /-Role$/ ) {
-                  $princ->LoadRoleGroup( Object => $object, Name => $item->{'GroupType'} );
+                    my $obj;
+                    if ( $item->{'GroupDomain'} eq 'RT::System-Role' ) {
+                        $obj = RT->System;
+                    }
+                    else {
+                        $obj = $object;
+                    }
+
+                    if ( $item->{GroupType} =~ /^RT::CustomRole-(.+)$/ ) {
+                        my $id = $1;
+
+                        # $id could be Name
+                        if ( $id =~ /\D/ ) {
+                            my $custom_role = RT::CustomRole->new( RT->SystemUser );
+                            $custom_role->Load($id);
+                            if ( $custom_role->Id ) {
+                                $item->{GroupType} = $custom_role->GroupType;
+                            }
+                            else {
+                                RT->Logger->error("Unable to load custom role $id");
+                            }
+                        }
+                    }
+                    $princ->LoadRoleGroup( Object => $obj, Name => $item->{'GroupType'} );
                 } else {
                   $princ->Load( $item->{'GroupId'} );
                 }
@@ -2950,12 +2971,13 @@ sub _LoadObject {
             if ( $values->{_Original}{'GroupDomain'} eq 'SystemInternal' ) {
                 $group->LoadSystemInternalGroup( $values->{_Original}{GroupType} );
             }
-            elsif ( $values->{_Original}{'GroupDomain'} eq 'RT::System-Role' ) {
-                $group->LoadRoleGroup( Object => RT->System, Name => $values->{_Original}{GroupType} );
-            }
             elsif ( $values->{_Original}{'GroupDomain'} =~ /-Role$/ ) {
                 my $object;
-                if ( $values->{_Original}{ObjectType} and $values->{_Original}{ObjectId} ) {
+
+                if ( $values->{_Original}{'GroupDomain'} eq 'RT::System-Role' ) {
+                    $object = RT->System;
+                }
+                elsif ( $values->{_Original}{ObjectType} and $values->{_Original}{ObjectId} ) {
                     $object = $values->{_Original}{ObjectType}->new( RT->SystemUser );
                     my ( $ok, $msg ) = $object->Load( $values->{_Original}{ObjectId} );
                     unless ($ok) {
@@ -2968,6 +2990,20 @@ sub _LoadObject {
                 }
                 else {
                     $object = RT->System;
+                }
+                if ( $values->{_Original}{GroupType} =~ /^RT::CustomRole-(.+)$/ ) {
+                    my $id = $1;
+                    # $id could be Name
+                    if ( $id =~ /\D/ ) {
+                        my $custom_role = RT::CustomRole->new(RT->SystemUser);
+                        $custom_role->Load($id);
+                        if ( $custom_role->Id ) {
+                            $values->{_Original}{GroupType} = $custom_role->GroupType;
+                        }
+                        else {
+                            RT->Logger->error("Unable to load custom role $id");
+                        }
+                    }
                 }
                 $group->LoadRoleGroup( Object => $object, Name => $values->{_Original}{GroupType} );
             }

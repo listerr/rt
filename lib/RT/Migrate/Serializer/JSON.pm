@@ -318,7 +318,12 @@ sub CanonicalizeACLs {
                     $ace->{GroupId} = $group->Name;
                 }
                 if ($domain eq 'SystemInternal' || $domain =~ /-Role$/) {
-                    $ace->{GroupType} = $group->Name;
+                    if ( $group->Name =~ /^RT::CustomRole-\d+$/ ) {
+                        $ace->{GroupType} = 'RT::CustomRole-' . $group->_CustomRoleObj->Name;
+                    }
+                    else {
+                        $ace->{GroupType} = $group->Name;
+                    }
                 }
             }
         }
