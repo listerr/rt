@@ -104,6 +104,7 @@ sub LimitToPrivacy {
             next if $type && $search->Type && $search->Type ne $type;
             push(@{$self->{'objects'}}, $search);
         }
+        @{$self->{'objects'}} = sort { lcfirst($a->Name) cmp lcfirst($b->Name) } @{$self->{'objects'}};
     } else {
         $RT::Logger->error("Could not load object $privacy");
     }
