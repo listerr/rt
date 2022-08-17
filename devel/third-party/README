@@ -9,7 +9,7 @@ Description: <select> box enhancer
 Origin: https://github.com/harvesthq/chosen
 License: MIT
 
-* ckeditor-4.5.3
+* ckeditor-4.19.1
 Description: WYSIWYG text editor
 Origin: http://ckeditor.com/builder
 License: GPL
