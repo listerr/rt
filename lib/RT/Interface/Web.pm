@@ -347,6 +347,13 @@ sub HandleRequest {
         $HTML::Mason::Commands::session{'CurrentUser'} = RT::CurrentUser->new();
     }
 
+    # Write changes back to persistent session
+    RT::Interface::Web::Session::Set(
+        SessionRef   => \%HTML::Mason::Commands::session,
+        SessionKey   => 'CurrentUser',
+        SessionValue => $HTML::Mason::Commands::session{'CurrentUser'},
+    );
+
     # attempt external auth
     $HTML::Mason::Commands::m->comp( '/Elements/DoAuth', %$ARGS )
         if @{ RT->Config->Get( 'ExternalAuthPriority' ) || [] };
@@ -372,7 +379,11 @@ sub HandleRequest {
     $HTML::Mason::Commands::m->callback( %$ARGS, CallbackName => 'Auth', CallbackPage => '/autohandler' );
 
     if ( $ARGS->{'NotMobile'} ) {
-        $HTML::Mason::Commands::session{'NotMobile'} = 1;
+        RT::Interface::Web::Session::Set(
+            SessionRef   => \%HTML::Mason::Commands::session,
+            SessionKey   => 'NotMobile',
+            SessionValue => 1,
+        );
     }
 
     unless ( _UserLoggedIn() ) {
@@ -411,8 +422,13 @@ sub HandleRequest {
     MaybeShowInterstitialCSRFPage($ARGS);
 
     # now it applies not only to home page, but any dashboard that can be used as a workspace
-    $HTML::Mason::Commands::session{'home_refresh_interval'} = $ARGS->{'HomeRefreshInterval'}
-        if ( $ARGS->{'HomeRefreshInterval'} );
+    if ( $ARGS->{'HomeRefreshInterval'} ) {
+        RT::Interface::Web::Session::Set(
+            SessionRef   => \%HTML::Mason::Commands::session,
+            SessionKey   => 'home_refresh_interval',
+            SessionValue => $ARGS->{'HomeRefreshInterval'},
+        );
+    }
 
     # Process per-page global callbacks
     $HTML::Mason::Commands::m->callback( %$ARGS, CallbackName => 'Default', CallbackPage => '/autohandler' );
@@ -430,7 +446,10 @@ sub HandleRequest {
 
 sub _ForceLogout {
 
-    delete $HTML::Mason::Commands::session{'CurrentUser'};
+    RT::Interface::Web::Session::Delete(
+        SessionRef => \%HTML::Mason::Commands::session,
+        SessionKey => 'CurrentUser',
+    );
 }
 
 sub _UserLoggedIn {
@@ -451,8 +470,15 @@ Pushes a login error into the Actions session store and returns the hash key.
 sub LoginError {
     my $new = shift;
     my $key = Digest::MD5::md5_hex( rand(1024) );
-    push @{ $HTML::Mason::Commands::session{"Actions"}->{$key} ||= [] }, $new;
-    $HTML::Mason::Commands::session{'i'}++;
+
+    my @actions = @{ $HTML::Mason::Commands::session{"Actions"}->{$key} ||= [] };
+    push @actions, $new;
+    RT::Interface::Web::Session::Set(
+        SessionRef   => \%HTML::Mason::Commands::session,
+        SessionKey   => 'Actions',
+        SessionValue => \@actions,
+    );
+
     return $key;
 }
 
@@ -488,8 +514,13 @@ sub SetNextPage {
         }
     }
 
-    $HTML::Mason::Commands::session{'NextPage'}->{$hash} = $page;
-    $HTML::Mason::Commands::session{'i'}++;
+    RT::Interface::Web::Session::Set(
+        SessionRef    => \%HTML::Mason::Commands::session,
+        SessionKey    => 'NextPage',
+        SessionSubKey => $hash,
+        SessionValue  => $page,
+    );
+
     return $hash;
 }
 
@@ -501,6 +532,11 @@ Returns the stashed next page hashref for the given hash.
 
 sub FetchNextPage {
     my $hash = shift || "";
+    RT::Interface::Web::Session::Load(
+        SessionRef => \%HTML::Mason::Commands::session,
+        SessionId  => $HTML::Mason::Commands::session{'_session_id'},
+    );
+
     return $HTML::Mason::Commands::session{'NextPage'}->{$hash};
 }
 
@@ -512,7 +548,13 @@ Removes the stashed next page for the given hash and returns it.
 
 sub RemoveNextPage {
     my $hash = shift || "";
-    return delete $HTML::Mason::Commands::session{'NextPage'}->{$hash};
+    my $return_hash = $HTML::Mason::Commands::session{'NextPage'}->{$hash};
+    RT::Interface::Web::Session::Delete(
+        SessionRef    => \%HTML::Mason::Commands::session,
+        SessionKey    => 'NextPage',
+        SessionSubKey => $hash,
+    );
+    return $return_hash;
 }
 
 =head2 TangentForLogin ARGSRef [HASH]
@@ -771,6 +813,12 @@ sub AttemptExternalAuth {
         $HTML::Mason::Commands::session{'CurrentUser'} = RT::CurrentUser->new();
         $HTML::Mason::Commands::session{'CurrentUser'}->$load_method($user);
 
+        RT::Interface::Web::Session::Set(
+            SessionRef   => \%HTML::Mason::Commands::session,
+            SessionKey   => 'CurrentUser',
+            SessionValue => $HTML::Mason::Commands::session{'CurrentUser'},
+        );
+
         if ( RT->Config->Get('WebRemoteUserAutocreate') and not _UserLoggedIn() ) {
 
             # Create users on-the-fly
@@ -799,6 +847,11 @@ sub AttemptExternalAuth {
                     $UserObj->$method( $new_user_info->{$attribute} ) if defined $new_user_info->{$attribute};
                 }
                 $HTML::Mason::Commands::session{'CurrentUser'}->Load($user);
+                RT::Interface::Web::Session::Set(
+                    SessionRef   => \%HTML::Mason::Commands::session,
+                    SessionKey   => 'CurrentUser',
+                    SessionValue => $HTML::Mason::Commands::session{'CurrentUser'},
+                );
             } else {
                 RT->Logger->error("Couldn't auto-create user '$user' when attempting WebRemoteUser: $msg");
                 AbortExternalAuth( Error => "UserAutocreateDefaultsOnLogin" );
@@ -806,7 +859,11 @@ sub AttemptExternalAuth {
         }
 
         if ( _UserLoggedIn() ) {
-            $HTML::Mason::Commands::session{'WebExternallyAuthed'} = 1;
+            RT::Interface::Web::Session::Set(
+                SessionRef   => \%HTML::Mason::Commands::session,
+                SessionKey   => 'WebExternallyAuthed',
+                SessionValue => 1,
+            );
             $m->callback( %$ARGS, CallbackName => 'ExternalAuthSuccessfulLogin', CallbackPage => '/autohandler' );
             # It is possible that we did a redirect to the login page,
             # if the external auth allows lack of auth through with no
@@ -889,7 +946,12 @@ sub AttemptPasswordAuthentication {
            $next = $next->{'url'} if ref $next;
 
         InstantiateNewSession();
-        $HTML::Mason::Commands::session{'CurrentUser'} = $user_obj;
+
+        RT::Interface::Web::Session::Set(
+            SessionRef   => \%HTML::Mason::Commands::session,
+            SessionKey   => 'CurrentUser',
+            SessionValue => $user_obj,
+        );
 
         $m->callback( %$ARGS, CallbackName => 'SuccessfulLogin', CallbackPage => '/autohandler', RedirectTo => \$next );
 
@@ -924,7 +986,11 @@ sub AttemptTokenAuthentication {
             $next = $next->{'url'} if ref $next;
 
             RT::Interface::Web::InstantiateNewSession();
-            $HTML::Mason::Commands::session{'CurrentUser'} = $user_obj;
+            RT::Interface::Web::Session::Set(
+                SessionRef   => \%HTML::Mason::Commands::session,
+                SessionKey   => 'CurrentUser',
+                SessionValue => $user_obj,
+            );
 
             # Really the only time we don't want to redirect here is if we were
             # passed user and pass as query params in the URL.
@@ -957,7 +1023,12 @@ sub LoadSessionFromCookie {
     my %cookies       = CGI::Cookie->parse(RequestENV('HTTP_COOKIE'));
     my $cookiename    = _SessionCookieName();
     my $SessionCookie = ( $cookies{$cookiename} ? $cookies{$cookiename}->value : undef );
-    tie %HTML::Mason::Commands::session, 'RT::Interface::Web::Session', $SessionCookie;
+
+    RT::Interface::Web::Session::Load(
+        SessionRef => \%HTML::Mason::Commands::session,
+        SessionId  => $SessionCookie,
+    );
+
     unless ( $SessionCookie && $HTML::Mason::Commands::session{'_session_id'} eq $SessionCookie ) {
         InstantiateNewSession();
     }
@@ -970,13 +1041,25 @@ sub LoadSessionFromCookie {
         }
 
         # save session on each request when AutoLogoff is turned on
-        $HTML::Mason::Commands::session{'_session_last_update'} = $now if $now != $last_update;
+        if ( $now != $last_update ) {
+            RT::Interface::Web::Session::Set(
+                SessionRef   => \%HTML::Mason::Commands::session,
+                SessionKey   => '_session_last_update',
+                SessionValue => $now,
+            );
+        }
     }
 }
 
 sub InstantiateNewSession {
-    tied(%HTML::Mason::Commands::session)->delete if tied(%HTML::Mason::Commands::session);
-    tie %HTML::Mason::Commands::session, 'RT::Interface::Web::Session', undef;
+    # Starting a new session, so clear out any existing one
+    RT::Interface::Web::Session::Delete( SessionRef   => \%HTML::Mason::Commands::session );
+
+    RT::Interface::Web::Session::Load(
+        SessionRef => \%HTML::Mason::Commands::session,
+        SessionId  => undef,
+    );
+
     SendSessionCookie();
 }
 
@@ -1023,10 +1106,9 @@ a cached DBI statement handle twice at the same time.
 
 sub Redirect {
     my $redir_to = shift;
-    untie $HTML::Mason::Commands::session;
     my $uri        = URI->new($redir_to);
     my $server_uri = URI->new( RT->Config->Get('WebURL') );
-    
+
     # Make relative URIs absolute from the server host and scheme
     $uri->scheme($server_uri->scheme) if not defined $uri->scheme;
     if (not defined $uri->host) {
@@ -1662,8 +1744,14 @@ sub IsPossibleCSRF {
     # endpoints.  We do this because using a REST cookie in a browser
     # would open the user to CSRF attacks to the REST endpoints.
     my $path = $HTML::Mason::Commands::r->path_info;
-    $HTML::Mason::Commands::session{'REST'} = $path =~ m{^/+REST/\d+\.\d+(/|$)}
-        unless defined $HTML::Mason::Commands::session{'REST'};
+
+    unless ( defined $HTML::Mason::Commands::session{'REST'} ) {
+        RT::Interface::Web::Session::Set(
+            SessionRef   => \%HTML::Mason::Commands::session,
+            SessionKey   => 'REST',
+            SessionValue => scalar( $path =~ m{^/+REST/\d+\.\d+(/|$)} ),
+        );
+    }
 
     if ($HTML::Mason::Commands::session{'REST'}) {
         return 0 if $path =~ m{^/+REST/\d+\.\d+(/|$)};
@@ -1729,8 +1817,14 @@ sub ExpandCSRFToken {
     if ($data->{attach}) {
         my $filename = $data->{attach}{filename};
         my $mime     = $data->{attach}{mime};
-        $HTML::Mason::Commands::session{'Attachments'}{$ARGS->{'Token'}||''}{$filename}
-            = $mime;
+
+        RT::Interface::Web::Session::Set(
+            SessionRef       => \%HTML::Mason::Commands::session,
+            SessionKey       => 'Attachments',
+            SessionSubKey    => $ARGS->{'Token'}||'',
+            SessionSubSubKey => $filename,
+            SessionValue     => $mime,
+        );
     }
 
     return 1;
@@ -1759,8 +1853,13 @@ sub StoreRequestToken {
         };
     }
 
-    $HTML::Mason::Commands::session{'CSRF'}->{$token} = $data;
-    $HTML::Mason::Commands::session{'i'}++;
+    RT::Interface::Web::Session::Set(
+        SessionRef    => \%HTML::Mason::Commands::session,
+        SessionKey    => 'CSRF',
+        SessionSubKey => $token,
+        SessionValue  => $data,
+    );
+
     return $token;
 }
 
@@ -2198,8 +2297,19 @@ sub MaybeRedirectForResults {
 
     if ( $has_actions ) {
         my $key = Digest::MD5::md5_hex( rand(1024) );
-        push @{ $session{"Actions"}{ $key } ||= [] }, @{ $args{'Actions'} };
-        $session{'i'}++;
+        my $actions_ref = [];
+        if ( $session{"Actions"}{ $key } ) {
+            $actions_ref = $session{"Actions"}{ $key };
+        }
+        push @{$actions_ref}, @{ $args{'Actions'} };
+
+        RT::Interface::Web::Session::Set(
+            SessionRef    => \%HTML::Mason::Commands::session,
+            SessionKey    => 'Actions',
+            SessionSubKey => $key,
+            SessionValue  => $actions_ref,
+        );
+
         $arguments{'results'} = $key;
     }
 
@@ -2316,10 +2426,13 @@ sub CreateTicket {
     if ( my $tmp = $session{'Attachments'}{ $ARGS{'Token'} || '' } ) {
         push @attachments, grep $_, map $tmp->{$_}, sort keys %$tmp;
 
-        delete $session{'Attachments'}{ $ARGS{'Token'} || '' }
-            unless $ARGS{'KeepAttachments'} or $Ticket->{DryRun};
-        $session{'Attachments'} = $session{'Attachments'}
-            if @attachments;
+        unless ( $ARGS{'KeepAttachments'} or $Ticket->{DryRun} ) {
+            RT::Interface::Web::Session::Delete(
+                SessionRef    => \%HTML::Mason::Commands::session,
+                SessionKey    => 'Attachments',
+                SessionSubKey => $ARGS{'Token'} || '',
+            );
+        }
     }
     if ( $ARGS{'Attachments'} ) {
         push @attachments, grep $_, map $ARGS{Attachments}->{$_}, sort keys %{ $ARGS{'Attachments'} };
@@ -2452,11 +2565,13 @@ sub ProcessUpdateMessage {
     if ( my $tmp = $session{'Attachments'}{ $args{'ARGSRef'}{'Token'} || '' } ) {
         push @attachments, grep $_, map $tmp->{$_}, sort keys %$tmp;
 
-        delete $session{'Attachments'}{ $args{'ARGSRef'}{'Token'} || '' }
-            unless $args{'KeepAttachments'}
-            or ($args{TicketObj} and $args{TicketObj}{DryRun});
-        $session{'Attachments'} = $session{'Attachments'}
-            if @attachments;
+        unless ( $args{'KeepAttachments'} or ( $args{TicketObj} and $args{TicketObj}{DryRun} ) ) {
+            RT::Interface::Web::Session::Delete(
+                SessionRef    => \%HTML::Mason::Commands::session,
+                SessionKey    => 'Attachments',
+                SessionSubKey => $args{'ARGSRef'}{'Token'} || '',
+            );
+        }
     }
     if ( $args{ARGSRef}{'UpdateAttachments'} ) {
         push @attachments, grep $_, map $args{ARGSRef}->{UpdateAttachments}{$_},
@@ -2624,14 +2739,16 @@ sub ProcessAttachments {
     my $token = $args{'ARGSRef'}{'Token'}
         ||= $args{'Token'} ||= Digest::MD5::md5_hex( rand(1024) );
 
-    my $update_session = 0;
-
     # deal with deleting uploaded attachments
     if ( my $del = $args{'ARGSRef'}{'DeleteAttach'} ) {
-        delete $session{'Attachments'}{ $token }{ $_ }
-            foreach ref $del? @$del : ($del);
-
-        $update_session = 1;
+        foreach my $delete ( ref $del ? @$del : ($del) ) {
+            RT::Interface::Web::Session::Delete(
+                SessionRef       => \%HTML::Mason::Commands::session,
+                SessionKey       => 'Attachments',
+                SessionSubKey    => $token,
+                SessionSubSubKey => $delete,
+            );
+        }
     }
 
     # store the uploaded attachment in session
@@ -2663,11 +2780,15 @@ sub ProcessAttachments {
             }
         }
 
-        $session{'Attachments'}{ $token }{ $file_path } = $attachment;
-
-        $update_session = 1;
+        RT::Interface::Web::Session::Set(
+            SessionRef       => \%HTML::Mason::Commands::session,
+            SessionKey       => 'Attachments',
+            SessionSubKey    => $token,
+            SessionSubSubKey => $file_path,
+            SessionValue     => $attachment,
+        );
     }
-    $session{'Attachments'} = $session{'Attachments'} if $update_session;
+
     return 1;
 }
 
@@ -4192,7 +4313,13 @@ sub ProcessQuickCreate {
             );
         }
 
-        $session{QuickCreate} = \%ARGS unless $created;
+        unless ( $created ) {
+            RT::Interface::Web::Session::Set(
+                SessionRef   => \%HTML::Mason::Commands::session,
+                SessionKey   => 'QuickCreate',
+                SessionValue => \%ARGS,
+            );
+        }
 
         MaybeRedirectForResults(
             Actions   => \@results,
@@ -4608,16 +4735,25 @@ sub SetObjectSessionCache {
         CheckRight => $CheckRight, ShowAll => $ShowAll );
 
     if ( defined $session{$cache_key} && !$session{$cache_key}{id} ) {
-        delete $session{$cache_key};
+        RT::Interface::Web::Session::Delete(
+            SessionRef => \%HTML::Mason::Commands::session,
+            SessionKey => $cache_key,
+        );
     }
 
     if ( defined $session{$cache_key}
          && ref $session{$cache_key} eq 'ARRAY') {
-        delete $session{$cache_key};
+         RT::Interface::Web::Session::Delete(
+             SessionRef => \%HTML::Mason::Commands::session,
+             SessionKey => $cache_key,
+         );
     }
     if ( defined $session{$cache_key} && defined $CacheNeedsUpdate &&
         $session{$cache_key}{lastupdated} <= $CacheNeedsUpdate ) {
-        delete $session{$cache_key};
+        RT::Interface::Web::Session::Delete(
+            SessionRef => \%HTML::Mason::Commands::session,
+            SessionKey => $cache_key,
+        );
     }
 
     if ( not defined $session{$cache_key} ) {
@@ -4628,24 +4764,36 @@ sub SetObjectSessionCache {
             CallbackPage => '/Elements/Quicksearch',
             ARGSRef => \%args, Collection => $collection, ObjectType => $ObjectType );
 
-        $session{$cache_key}{id} = {};
+        RT::Interface::Web::Session::Delete(
+            SessionRef => \%HTML::Mason::Commands::session,
+            SessionKey => $cache_key,
+        );
 
+        my %ids;
         while (my $object = $collection->Next) {
             if ($ShowAll
                 or not $CheckRight
                 or $session{CurrentUser}->HasRight( Object => $object, Right => $CheckRight ))
             {
                 next if $args{'Exclude'} and exists $args{'Exclude'}->{$object->Name};
-                push @{$session{$cache_key}{objects}}, {
+                push @{$ids{objects}}, {
                     Id          => $object->Id,
                     Name        => $object->Name,
                     Description => $object->_Accessible("Description" => "read") ? $object->Description : undef,
                     Lifecycle   => $object->_Accessible("Lifecycle" => "read") ? $object->Lifecycle : undef,
                 };
-                $session{$cache_key}{id}{ $object->id } = 1;
+                $ids{id}{ $object->id } = 1;
             }
         }
-        $session{$cache_key}{lastupdated} = time();
+
+        $ids{'lastupdated'} = time();
+
+        RT::Interface::Web::Session::Set(
+            SessionRef   => \%HTML::Mason::Commands::session,
+            SessionKey   => $cache_key,
+            SessionValue => \%ids,
+        );
+
     }
 
     return $cache_key;

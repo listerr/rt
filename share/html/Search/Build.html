@@ -172,7 +172,10 @@ if ( $NewQuery ) {
     %saved_search = ( Id => 'new' );
 
     # ..then wipe the session out..
-    delete $session{$hash_name};
+    RT::Interface::Web::Session::Delete(
+        SessionRef => \%session,
+        SessionKey => $hash_name,
+    );
 
     # ..and the search results.
     $session{$session_name}->CleanSlate if defined $session{$session_name};
@@ -351,12 +354,16 @@ if ($ARGS{SavedSearchSave}) {
 
 # Push the updates into the session so we don't lose 'em
 
-$session{$hash_name} = {
-    %query,
-    SearchId    => $saved_search{'Id'},
-    Object      => $saved_search{'Object'},
-    Description => $saved_search{'Description'},
-};
+RT::Interface::Web::Session::Set(
+    SessionRef   => \%session,
+    SessionKey   => $hash_name,
+    SessionValue => {
+        %query,
+        SearchId    => $saved_search{'Id'},
+        Object      => $saved_search{'Object'},
+        Description => $saved_search{'Description'},
+    },
+);
 
 
 # Show the results, if we were asked.

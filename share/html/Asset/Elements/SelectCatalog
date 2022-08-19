@@ -65,7 +65,11 @@ $AutoSubmit     => 0
 <%init>
 my $catalog_obj = LoadDefaultCatalog($Default || '');
 if ( $UpdateSession && $catalog_obj->Id ){
-    $session{'DefaultCatalog'} = $catalog_obj->Id;
+    RT::Interface::Web::Session::Set(
+        SessionRef   => \%session,
+        SessionKey   => 'DefaultCatalog',
+        SessionValue => $catalog_obj->Id,
+    );
     $Default = $catalog_obj->Id;
 }
 $ARGS{OnChange} = "jQuery(this).closest('form').find('input[name=CatalogChanged]').val(1);";

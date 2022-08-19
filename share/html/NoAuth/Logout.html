@@ -79,7 +79,11 @@ $m->callback( %ARGS, CallbackName => 'BeforeSessionDelete' );
 
 if (keys %session) {
     RT::Interface::Web::InstantiateNewSession();
-    $session{'CurrentUser'} = RT::CurrentUser->new;
+    RT::Interface::Web::Session::Set(
+        SessionRef   => \%session,
+        SessionKey   => 'CurrentUser',
+        SessionValue => RT::CurrentUser->new,
+    );
 }
 
 $m->callback( %ARGS, CallbackName => 'AfterSessionDelete' );

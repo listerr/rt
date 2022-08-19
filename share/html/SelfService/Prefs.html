@@ -169,7 +169,11 @@ if ( $pref eq 'edit-prefs' || $pref eq 'edit-prefs-view-info' || $pref eq 'full-
 
     if ( $Lang ) {
         $session{'CurrentUser'}->LanguageHandle($Lang);
-        $session{'CurrentUser'} = $session{'CurrentUser'}; # force writeback
+        RT::Interface::Web::Session::Set(
+            SessionRef   => \%session,
+            SessionKey   => 'CurrentUser',
+            SessionValue => $session{'CurrentUser'},
+        );
     }
 }
 

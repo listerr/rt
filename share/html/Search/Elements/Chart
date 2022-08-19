@@ -69,8 +69,13 @@ my $query_string = $m->comp('/Elements/QueryString', %ARGS, GroupBy => \@GroupBy
 my $key;
 if ( RT->Config->Get('EnableJSChart') || !RT->Config->Get('DisableGD') ) {
     $key = Digest::MD5::md5_hex( rand(1024) );
-    $session{'charts_cache'}{$key} = { columns => \%columns, report => $report->Serialize };
-    $session{'i'}++;
+    RT::Interface::Web::Session::Set(
+        SessionRef    => \%session,
+        SessionKey    => 'charts_cache',
+        SessionSubKey => $key,
+        SessionValue  => { columns => \%columns, report => $report->Serialize },
+    );
+
 }
 
 </%init>

@@ -51,6 +51,7 @@ use warnings;
 use strict;
 
 use RT::CurrentUser;
+use Clone;
 
 =head1 NAME
 
@@ -314,6 +315,189 @@ sub ClearByUser {
         $deleted++;
     }
     $self->ClearOrphanLockFiles if $deleted;
+}
+
+=head3 Load
+
+Load a session or create a new one.
+
+Accepts: SessionRef => \%session, SessionId
+
+SessionRef is a reference to a hash which will be loaded with
+session data.
+
+SessionId is the id of an existing session. If set to undef or
+omitted, an empty new session will be created with a session id
+set with the key '_session_id'.
+
+=cut
+
+sub Load {
+    my %args = (
+        SessionRef => undef,
+        SessionId  => undef,
+        @_
+    );
+
+    my %local_session;
+    tie %local_session, 'RT::Interface::Web::Session', $args{'SessionId'};
+
+    # Use { %local_session } instead of \%local_session to not clone the tie part.
+    %{ $args{'SessionRef'} } = %{ Clone::clone( {%local_session} ) };
+
+    untie %local_session;
+
+    return 1;
+}
+
+=head3 Set
+
+Set a value in the session.
+
+Accepts: SessionRef => \%session, SessionKey, SessionSubKey,
+SessionSubSubKey, SessionValue
+
+SessionRef is a reference to a hash for an existing session.
+It is expected to have a key '_session_id' with the id of the
+current session. The referenced hash will be also be updated
+with the new value.
+
+SessionKey and the SubKey parameters indicate where in the hash
+to set the value. The multiple subkey arguments handle multiple
+hash levels from the previous direct hash implementation.
+
+SessionValue is the value to set in the indicated key.
+
+If _session_id is not set, it simply updates SessionRef.
+
+=cut
+
+sub Set {
+    my %args = (
+        SessionRef       => undef,
+        SessionKey       => undef,
+        SessionSubKey    => undef,
+        SessionSubSubKey => undef,
+        SessionValue     => undef,
+        @_
+    );
+
+    my $session_id = $args{'SessionRef'}->{'_session_id'};
+
+    my %local_session;
+    my $target;
+
+    if ($session_id) {
+        tie %local_session, 'RT::Interface::Web::Session', $session_id;
+        $target = \%local_session;
+    }
+    else {
+        # No session_id means not tied, in which case SessionRef is a plain hashref.
+        $target = $args{'SessionRef'};
+    }
+
+    # Set the value, which will automagically set it in the back-end session storage
+    if ( $args{'SessionSubSubKey'} ) {
+        $target->{ $args{'SessionKey'} }{ $args{'SessionSubKey'} }{ $args{'SessionSubSubKey'} } = $args{'SessionValue'};
+    }
+    elsif ( $args{'SessionSubKey'} ) {
+        $target->{ $args{'SessionKey'} }{ $args{'SessionSubKey'} } = $args{'SessionValue'};
+    }
+    else {
+        $target->{ $args{'SessionKey'} } = $args{'SessionValue'};
+    }
+
+    if ( tied %local_session ) {
+
+        # Clone it back so we update the copy of the session with the latest values
+        # Use { %local_session } instead of \%local_session to not clone the tie part.
+        %{ $args{'SessionRef'} } = %{ Clone::clone( {%local_session} ) };
+
+        # Apache::Session doesn't sync changes to subkeys, so force a sync
+        # with a change at the top level.
+        $local_session{i}++;
+
+        untie %local_session;
+    }
+
+    return 1;
+}
+
+=head3 Delete
+
+Delete a key from the session.
+
+Accepts: SessionRef => \%session, SessionKey, SessionSubKey,
+SessionSubSubKey
+
+SessionRef is a reference to a hash for an existing session.
+It is expected to have a key '_session_id' with the id of the
+current session. The referenced hash will be also be updated
+with the new value.
+
+SessionKey and the SubKey parameters indicate where in the hash
+to delete the key. The multiple subkey arguments handle multiple
+hash levels from the previous direct hash implementation.
+
+If _session_id is not set, it simply deletes from SessionRef.
+
+=cut
+
+sub Delete {
+    my %args = (
+        SessionRef       => undef,
+        SessionKey       => undef,
+        SessionSubKey    => undef,
+        SessionSubSubKey => undef,
+        @_
+    );
+
+    my $session_id = $args{'SessionRef'}->{'_session_id'};
+    my %local_session;
+
+    my $target;
+
+    if ($session_id) {
+        tie %local_session, 'RT::Interface::Web::Session', $session_id;
+        $target = \%local_session;
+    }
+    else {
+        # No session_id means not tied, in which case SessionRef is a plain hashref.
+        $target = $args{'SessionRef'};
+    }
+
+    if ( $args{'SessionKey'} ) {
+
+        # Delete requested item from the session
+        if ( defined $args{'SessionSubSubKey'} ) {
+            delete $target->{ $args{'SessionKey'} }{ $args{'SessionSubKey'} }{ $args{'SessionSubSubKey'} };
+        }
+        elsif ( defined $args{'SessionSubKey'} ) {
+            delete $target->{ $args{'SessionKey'} }{ $args{'SessionSubKey'} };
+        }
+        else {
+            delete $target->{ $args{'SessionKey'} };
+        }
+
+        if ( tied %local_session ) {
+
+            # Apache::Session doesn't sync changes to subkeys, so force a sync
+            # with a change at the top level.
+            $local_session{i}++;
+
+            # Use { %local_session } instead of \%local_session to not clone the tie part.
+            %{ $args{'SessionRef'} } = %{ Clone::clone( {%local_session} ) };
+        }
+    }
+    else {
+        # No key provided, delete the whole session
+        tied(%local_session)->delete if tied %local_session;
+        %{ $args{'SessionRef'} } = ();
+    }
+
+    untie %local_session if tied %local_session;
+
+    return 1;
 }
 
 sub TIEHASH {
