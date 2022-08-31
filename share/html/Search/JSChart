@@ -161,7 +161,7 @@ var searchChart = new Chart(ctx, {
 var group_by = <% JSON( \@GroupBy ) |n %>;
 var data_queries = <% JSON( \@data_queries ) |n %>;
 
-jQuery('#search-chart').click(function(e) {
+jQuery('[id="<% $id |n %>"]').click(function(e) {
     var slice = searchChart.getElementAtEvent(e);
     if ( !slice[0] ) return;
 
