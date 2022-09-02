@@ -338,10 +338,29 @@ sub BuildMainNav {
             );
         }
     }
-    my $logout_url = RT->Config->Get('LogoutURL');
+    my $logout_url = RT->Config->Get('LogoutURL') || '';
+    # the user should use the built in RT logout page IFF
+    #   WebRemoteUserAuth is not enabled
+    #   OR
+    #   WebFallbackToRTLogin is enabled AND the user is not externally authed
+    # the user should use the LogoutURL config page IFF
+    #   WebRemoteUserAuth is enabled
+    #   AND
+    #   the user is externally authed use the
+    #   AND
+    #   LogoutURL is not the built in RT logout page
     if ( $current_user->Name
          && (   !RT->Config->Get('WebRemoteUserAuth')
-              || RT->Config->Get('WebFallbackToRTLogin') )) {
+              || ( RT->Config->Get('WebFallbackToRTLogin')
+                && !$HTML::Mason::Commands::session{'WebExternallyAuthed'} ) ) ) {
+        # using RT login so use default RT logout
+        $about_me->child( logout => title => loc('Logout'), path => '/NoAuth/Logout.html' );
+    } elsif ( RT->Config->Get('WebRemoteUserAuth')
+        && $HTML::Mason::Commands::session{'WebExternallyAuthed'}
+        && ( $logout_url ne '/NoAuth/Logout.html' ) )
+    {
+        # using remote user auth so use logout url if it is not the default RT logout
+        # for remote user auth logout url should point to SP or IdP logout
         $about_me->child( logout => title => loc('Logout'), path => $logout_url );
     }
     if ( $request_path =~ m{^/Dashboards/(\d+)?}) {
@@ -1694,10 +1713,29 @@ sub BuildSelfServiceNav {
         $about_me->child( prefs => title => loc('Preferences'), path => '/SelfService/Prefs.html' );
     }
 
-    my $logout_url = RT->Config->Get('LogoutURL');
+    my $logout_url = RT->Config->Get('LogoutURL') || '';
+    # the user should use the built in RT logout page IFF
+    #   WebRemoteUserAuth is not enabled
+    #   OR
+    #   WebFallbackToRTLogin is enabled AND the user is not externally authed
+    # the user should use the LogoutURL config page IFF
+    #   WebRemoteUserAuth is enabled
+    #   AND
+    #   the user is externally authed use the
+    #   AND
+    #   LogoutURL is not the built in RT logout page
     if ( $current_user->Name
          && (   !RT->Config->Get('WebRemoteUserAuth')
-              || RT->Config->Get('WebFallbackToRTLogin') )) {
+              || ( RT->Config->Get('WebFallbackToRTLogin')
+                && !$HTML::Mason::Commands::session{'WebExternallyAuthed'} ) ) ) {
+        # using RT login so use default RT logout
+        $about_me->child( logout => title => loc('Logout'), path => '/NoAuth/Logout.html' );
+    } elsif ( RT->Config->Get('WebRemoteUserAuth')
+        && $HTML::Mason::Commands::session{'WebExternallyAuthed'}
+        && ( $logout_url ne '/NoAuth/Logout.html' ) )
+    {
+        # using remote user auth so use logout url if it is not the default RT logout
+        # for remote user auth logout url should point to SP or IdP logout
         $about_me->child( logout => title => loc('Logout'), path => $logout_url );
     }
 
