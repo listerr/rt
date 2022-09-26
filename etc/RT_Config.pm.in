@@ -2241,7 +2241,7 @@ Set($SearchResultsRefreshInterval, 0);
 =item C<$DefaultSearchResultFormat>
 
 C<$DefaultSearchResultFormat> is the default format for RT search
-results
+results.
 
 =cut
 
@@ -2260,6 +2260,25 @@ Set ($DefaultSearchResultFormat, qq{
    '<small>__LastUpdatedRelative__</small>',
    '<small>__TimeLeft__</small>'});
 
+=item C<$DefaultSearchResultRowsPerPage>
+
+C<$DefaultSearchResultRowsPerPage> is the default rows per page for
+the dropdown on the Query Builder. Users can still easily change it
+by selecting another value from the dropdown before they run their
+search.
+
+=cut
+
+Set( $DefaultSearchResultRowsPerPage, 50 );
+
+=item C<@SearchResultsPerPage>
+
+This setting defines the possible choices for search results per page. You should
+You should not include a value of C<0>, as that is always provided as an option.
+
+=cut
+
+Set(@SearchResultsPerPage, qw(10 25 50 100));
 
 =item C<$UserTicketDataResultFormat>
 

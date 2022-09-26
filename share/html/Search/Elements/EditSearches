@@ -431,8 +431,9 @@ return @results;
 
 <%METHOD GetDependedOnByList>
 
+% my $rows_per_page = RT->Config->Get('DefaultSearchResultRowsPerPage') || 50;
 % my $links = $Object->DependedOnBy;
-% $links->RowsPerPage(50);
+% $links->RowsPerPage( $rows_per_page );
 % my $total = $links->CountAll;
   <p>
     <&|/l, $total &>This search is used in the following [quant,_1,dashboard,dashboards]</&>:
@@ -448,7 +449,7 @@ return @results;
     </li>
 % }
 
-% if ( $total > 50 ) {
+% if ( $total > $rows_per_page ) {
     <li class="list-group-item">...</li>
 % }
   </ul>

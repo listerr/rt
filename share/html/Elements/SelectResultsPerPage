@@ -56,8 +56,9 @@
 </select>
 
 <%INIT>
-my @values = qw(0 10 25 50 100);
-my @labels = (loc('Unlimited'), qw(10 25 50 100));
+my @values = RT->Config->Get('SearchResultsPerPage');
+my @labels = (loc('Unlimited'), @values);
+unshift @values, 0;
 $Default = 50 unless defined $Default && $Default =~ /^\d+$/;
 </%INIT>
 <%ARGS>
