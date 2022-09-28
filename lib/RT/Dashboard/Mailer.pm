@@ -100,6 +100,17 @@ sub MailDashboards {
         $Users->Limit( FIELD => 'id', VALUE => $user->Id || 0 );
     }
 
+    # Force to use light theme for better compatibility with email clients
+    my $original_config_get = \&RT::Config::Get;
+    no warnings 'redefine';
+    local *RT::Config::Get = sub {
+        my ( $self, $name ) = @_;
+        if ( $name eq 'WebDefaultStylesheet' ) {
+            return 'elevator-light';
+        }
+        return $original_config_get->(@_);
+    };
+
     while (defined(my $user = $Users->Next)) {
         my ($hour, $dow, $dom) = HourDowDomIn($args{Time}, $user->Timezone || RT->Config->Get('Timezone'));
         $hour .= ':00';
