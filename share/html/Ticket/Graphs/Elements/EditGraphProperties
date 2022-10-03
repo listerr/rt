@@ -85,7 +85,6 @@
           </div>
         </div>
 % }
-      </div>
   </&>
 
 % my @properties = RT::Graph::Tickets->TicketProperties( $session{'CurrentUser'} );
@@ -189,7 +188,6 @@ $class = 'class="hidden"' if $Level != 1 && !@Default;
           </div>
         </div>
 % }
-      </div>
   </&>
 % }
 </div>
