@@ -1897,6 +1897,12 @@ our %META;
     EmailDashboardInlineCSS => {
         Widget => '/Widgets/Form/Boolean',
     },
+    EmailDashboardJSChartImages => {
+        Widget => '/Widgets/Form/Boolean',
+    },
+    ChromePath => {
+        Widget => '/Widgets/Form/String',
+    },
     DefaultErrorMailPrecedence => {
         Widget => '/Widgets/Form/String',
     },

@@ -90,7 +90,7 @@ RT::LoadConfig();
 RT->Config->Set( LogToSTDERR => $opts{log} ) if $opts{log};
 
 # Disable JS chart as email clients don't support it
-RT->Config->Set( EnableJSChart => 0 );
+RT->Config->Set( EnableJSChart => RT->Config->Get( 'EmailDashboardJSChartImages' ) );
 
 # Disable inline editing as email clients don't support it
 RT->Config->Set( InlineEdit => 0 );

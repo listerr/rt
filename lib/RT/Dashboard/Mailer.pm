@@ -361,8 +361,6 @@ SUMMARY
         }
     }
 
-    $content = ScrubContent($content);
-
     $RT::Logger->debug("Got ".length($content)." characters of output.");
 
     $content = HTML::RewriteAttributes::Links->rewrite(
@@ -530,6 +528,115 @@ sub BuildEmail {
         inline_imports => 1,
     );
 
+    # this needs to be done after all of the CSS has been imported
+    # (by inline_css above, which is distinct from the work done by
+    # CSS::Inliner below) and before all of the scripts are scrubbed
+    # away
+    if ( RT->Config->Get('EmailDashboardJSChartImages') ) {
+        if ( WWW::Mechanize::Chrome->require ) {
+            my $width = 1920;
+            my $height = 1080;
+CHROMELOOP:    {
+            require GD::Image;
+
+            # copy the content
+            my $content_with_script = $content;
+
+            # copy in the text of the linked js
+            $content_with_script =~ s{<script type="text/javascript" src="([^"]+)"></script>}{<script type="text/javascript">@{ [(GetResource( $1 ))[0]] }</script>}sg;
+
+            # TODO: make chrome instance persist across multiple dashboards
+            # start chrome
+            my $chrome_data_dir = tempdir(CLEANUP => 1);
+            my $chrome = WWW::Mechanize::Chrome->new(
+                autodie => 0,
+                headless => 1,
+                autoclose => 1,
+                data_directory => $chrome_data_dir,
+                profile_directory => $chrome_data_dir . '/profile',
+                launch_exe => '/usr/bin/chromium',
+                # the width is most important here
+                launch_arg => [ "--window-size=${width}x$height" ],
+            );
+            sleep 1;
+
+            $content_with_script = Encode::encode( "UTF-8", $content_with_script );
+
+            # write the complete content to a temp file
+            my $temp_fh = File::Temp->new( UNLINK => 1, SUFFIx => '.html' );
+            print $temp_fh $content_with_script;
+            close $temp_fh;
+
+            # load the file in chrome
+            $chrome->get_local( $temp_fh->filename );
+            $chrome->wait_until_visible( selector => 'div.dashboard' );
+            sleep 1;
+
+            # grab the list of canvas elements
+            my @canvases = map { { element => $_ } } $chrome->selector('div.chart canvas');
+
+            last CHROMELOOP unless @canvases;
+
+            my $max_extent = 0;
+
+            # ... and their coordinates
+            foreach my $canvas_data ( @canvases ) {
+                my $coords = $canvas_data->{coords} = $chrome->element_coordinates( $canvas_data->{element} );
+                if ( $max_extent < $coords->{top} + $coords->{height} ) {
+                    $max_extent = int( $coords->{top} + $coords->{height} ) + 1;
+                }
+            }
+
+            # make sure that all of them are "visible" in the headless instance
+            if ( $height < $max_extent ) {
+                $height = $max_extent;
+                redo CHROMELOOP;
+            }
+
+            # capture the entire page as an image
+            my $page_image = GD::Image->newFromPngData( $chrome->render_content( format => 'png' ) );
+
+            foreach my $canvas_data ( @canvases ) {
+                my $coords = $canvas_data->{coords};
+
+                my $canvas_image = GD::Image->new( $coords->{width}, $coords->{height} );
+
+                # cut out each canvas by coordinates
+                $canvas_image->copy(
+                    # source image
+                    $page_image,
+                    # location in destination image
+                    0, 0,
+                    # location in destination image
+                    $coords->{left}, $coords->{top}, 
+                    # size
+                    $coords->{width}, $coords->{height},
+                );
+
+                my $cid = time() . $$ . int(rand(1e6));
+
+                # replace each canvas in the original content with an image tag
+                $content =~ s{<canvas [^>]+>}{<img src="cid:$cid"/>}s;
+
+                # and push an entity onto @parts
+                push @parts, MIME::Entity->build(
+                    Top          => 0,
+                    Data         => $canvas_image->png,
+                    Type         => 'image/png',
+                    Encoding     => 'base64',
+                    Disposition  => 'inline',
+                    'Content-Id' => "<$cid>",
+                );
+            }
+            }
+        }
+        else {
+            RT->Logger->warn('EmailDashboardJSChartImages is enabled but WWW::Mechanize::Chrome is not installed. Install the optional module WWW::Mechanize::Chrome to use this feature.');
+        }
+    }
+
+    $content =~ s{<link rel="shortcut icon"[^>]+/>}{};
+
     # Inline the CSS if CSS::Inliner is installed and can be loaded
     if ( RT->Config->Get('EmailDashboardInlineCSS') ) {
         if ( CSS::Inliner->require ) {
@@ -546,6 +653,8 @@ sub BuildEmail {
             RT->Logger->warn('EmailDashboardInlineCSS is enabled but CSS::Inliner is not installed. Install the optional module CSS::Inliner to use this feature.');
         }
     }
+
+    $content = ScrubContent($content);
 
     my $entity = MIME::Entity->build(
         From    => Encode::encode("UTF-8", $args{From}),

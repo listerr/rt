@@ -487,6 +487,23 @@ additional defense against CSRF attacks in some browsers.  See
 L<https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite>
 for more details on valid values, their meaning, and browser support.
 
+=item * Additional options for charts in dashboard emails
+
+While it has been possible to use JSChart to generate chart images in the RT UI,
+because these images are generated client-side it hasn't been possible to include
+them in dashboard emails, so the GD-generated images have been the only option.
+
+It is now possible to use the optional Perl module C<WWW::Mechanize::Chrome> and
+a compatible server-side web brwoser to create images of the JSChart graphs for
+inclusion in emails.
+
+This is accomplished by setting C<$EmailDashboardJSChartImages> to '1' and also
+setting C<$ChromePath> to the fully-qualified path of the executable for your
+chosen Chrome-based browser.
+
+This feature has been tested with Chrome, Chromium, Microsoft Edge, and Opera.
+Other Chrome-based browsers may also work.
+
 =back
 
 =cut

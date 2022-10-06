@@ -907,6 +907,29 @@ With this enabled, some parts of the email won't look exactly like RT.
 
 Set($EmailDashboardInlineCSS, 0);
 
+=item C<$EmailDashboardJSChartImages>
+
+To use the JSChart-generated images in emailed dashboards, you can install the
+optional module C<WWW::Mechanize::Chrome>, set this option, and set
+C<$ChromePath> to the executable for a compatible Chrome-based browser.
+
+=cut
+
+Set($EmailDashboardJSChartImages, 0);
+
+=item C<$ChromePath>
+
+This option contains the fully-qualified path for a compatible Chrome-based
+browser executable that will be used to generate static images for JSChart
+graphs for dashboard emails.
+
+This has been confirmed to also work with Chromium, Microsoft Edge, and Opera.
+
+=cut
+
+Set($ChromePath, '');
+
+
 =back
 
 
