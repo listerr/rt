@@ -379,10 +379,14 @@ sub Create {
     $self->{ObjectCount}{$class}++;
     $self->Resolve( $uid => $class, $id );
 
-    # Load it back to get real values into the columns
-    $obj = $class->new( RT->SystemUser );
-    $obj->Load( $id );
-    $obj->PostInflate( $self, $uid );
+    # Attribute, Article and SystemUser have actions in PostInflate. CustomField is for NewCFs.
+    if ( $class =~ /^RT::(Attribute|Article|CustomField)$/ || ( $class eq 'RT::User' && $data->{Name} eq 'RT_System' ) )
+    {
+        # Load it back to get real values into the columns
+        $obj = $class->new( RT->SystemUser );
+        $obj->Load( $id );
+        $obj->PostInflate( $self, $uid );
+    }
 
     return $obj;
 }
@@ -453,6 +457,7 @@ sub ReadStream {
                   ? $origid
                   : $self->Organization . ":$origid";
 
+        $obj->Load( $self->Lookup($uid)->[1] );
         my ($id, $msg) = $obj->AddCustomFieldValue(
             Field             => $self->{OriginalId},
             Value             => $value,
