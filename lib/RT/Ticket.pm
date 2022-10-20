@@ -3759,9 +3759,7 @@ sub Serialize {
     my %args = (@_);
     my %store = $self->SUPER::Serialize(@_);
 
-    my $obj = RT::Ticket->new( RT->SystemUser );
-    $obj->Load( $store{EffectiveId} );
-    $store{EffectiveId} = \($obj->UID);
+    $store{EffectiveId} = \( join '-', 'RT::Ticket', $RT::Organization, $store{EffectiveId} );
 
     return %store;
 }
