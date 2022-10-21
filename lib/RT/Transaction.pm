@@ -1569,9 +1569,11 @@ sub NewValue {
 
 sub Object {
     my $self  = shift;
-    my $Object = $self->__Value('ObjectType')->new($self->CurrentUser);
-    $Object->Load($self->__Value('ObjectId'));
-    return $Object;
+    unless ( $self->{_cached}{Object} ) {
+        $self->{_cached}{Object} = $self->__Value('ObjectType')->new( $self->CurrentUser );
+        $self->{_cached}{Object}->LoadById( $self->__Value('ObjectId') );
+    }
+    return $self->{_cached}{Object};
 }
 
 =head2 NewReferenceObject
