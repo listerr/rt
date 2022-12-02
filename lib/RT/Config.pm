@@ -362,6 +362,27 @@ our %META;
             }
         },
     },
+    DefaultSearchResultRowsPerPage => {
+        Section         => 'General',                       #loc
+        Overridable     => 1,
+        Default         => 50,
+        SortOrder       => 9,
+        Widget          => '/Widgets/Form/Select',
+        WidgetArguments => {
+            Description => 'Number of search results per page', #loc
+            Callback    => sub {
+                my @values = RT->Config->Get('SearchResultsPerPage');
+                my %labels = (
+                    0 => "Unlimited", # loc
+                    map { $_ => $_ } @values,
+                );
+
+                unshift @values, 0;
+
+                return { Values => \@values, ValuesLabel => \%labels };
+            },
+        },
+    },
     SearchResultsRefreshInterval => {
         Section         => 'General',                       #loc
         Overridable     => 1,
